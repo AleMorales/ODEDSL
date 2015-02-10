@@ -18,4 +18,7 @@ const keywords1 = ["mereaction", "reaction", "equation", "state", "species",
                   "meequation"]
 
 # Substitute \n and \t
-strip_tabs_newline(source::String) = replace(source, r"\n|\t", "")                  
+strip_tabs_newline(source::String) = replace(source, r"\n|\t", "")
+
+# Tokenize the string by whitespace
+tokenize(source::String) = split(source, r"\s+", keep = false)
