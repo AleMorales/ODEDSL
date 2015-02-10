@@ -16,3 +16,6 @@ strip_comments(source::String) = replace(source, r"\#.*\n","")
 const keywords1 = ["mereaction", "reaction", "equation", "state", "species",
                   "component", "parameter", "constant", "forcing", "compartment",
                   "meequation"]
+
+# Substitute \n and \t
+strip_tabs_newline(source::String) = replace(source, r"\n|\t", "")                  
