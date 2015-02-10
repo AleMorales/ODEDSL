@@ -18,10 +18,12 @@ const start_keywords = ["mereaction", "reaction", "equation", "state", "species"
                         "meequation","export_equation","export_reaction","variable_compartment",
                         "export_meequation","export_mereaction"]
 
-# Tokenize the string by whitespace
+# Tokenize the string by whitespace, tab or newline
 tokenize(source::String) = split(source, r"\s|\n|\t", keep = true)
 
-# Separate into logical lines
+# Separate into logical lines knowing that a valid sentence must begin with a start keyword
+# Whitespace is ignored. To make sure there are no problems, the reconstructed sentences are always
+# appended surrounded by whitespace
 function logical_lines(source::Array{SubString{ASCIIString},1})
   lines = ASCIIString[]
   c = 0
