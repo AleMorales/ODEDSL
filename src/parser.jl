@@ -7,3 +7,7 @@ function read_file(filename::String)
     close(file)
     return contents
 end
+
+# Look a pattern consisting of a `#` followed by 0 or more character of any type except newline
+# and ending in newline
+strip_comments(source::String) = replace(source, r"\#.*\n","") 
