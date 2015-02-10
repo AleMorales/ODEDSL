@@ -13,7 +13,7 @@ end
 strip_comments(source::String) = replace(source, r"\#.*\n","")
 
 # Keywords that id the type of sentence
-const keywords1 = ["mereaction", "reaction", "equation", "state", "species",
+const start_keywords = ["mereaction", "reaction", "equation", "state", "species",
                   "component", "parameter", "constant", "forcing", "compartment",
                   "meequation"]
 
