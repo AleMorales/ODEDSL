@@ -22,7 +22,7 @@ const start_keywords = ["export_equation","export_reaction","variable_compartmen
                         "meequation"]
 
 # Tokenize the string by whitespace, tab or newline
-tokenize(source::String) = split(source, r"\s|\n|\t", keep = true)
+tokenize(source::String) = split(source, r"\s|\n|\t")
 
 # Separate into logical lines knowing that a valid sentence must begin with a start keyword
 # Whitespace is ignored. To make sure there are no problems, the reconstructed sentences are always
