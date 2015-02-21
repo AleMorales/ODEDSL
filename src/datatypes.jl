@@ -1,14 +1,157 @@
 module DataTypes
 
 using DataStructures
-import Base.convert
+import Base.convert, Base.show, Base.showerror
 
 export convert, Parameter, Forcing, Equation
 export Species, Compartment, Reactant, Component
 export MEReaction, Reaction
 export MESource, ReactionSource, OdeSource, OdeSorted, OdeModel
+export Dimension, Unit
+
+###################################################
+###  Dimensional analysis and unit conversion  ####
+###################################################
+
+immutable Dimension
+  K::Rational{Int64}
+  s::Rational{Int64}
+  m::Rational{Int64}
+  g::Rational{Int64} 
+  cd::Rational{Int64} 
+  mol::Rational{Int64} 
+  A::Rational{Int64}
+end
+
+immutable Unit
+  d::Dimension
+  f::Number
+end
+
+Dimension(u::Unit) = Dimension(u.K, u.s, u.m, u.g, u.cd, u.mol, u.A)
+
+# Unit error (when we try to add or substract different units)
+type UnitError <: Exception
+end
+showerror(io::IO, e::UnitError) = print(io, "An attempt was made to add or substract variables with different dimensions.");
 
 
+# Algebra with dimensions
+*(u1::Dimension, u2::Dimension) =
+  Dimension(u1.K + u2.K, u1.s + u2.s, u1.m + u2.m, 
+            u1.g + u2.g, u1.cd + u2.cd, u1.mol + u2.mol, u1.A + u2.A)
+/(u1::Dimension, u2::Dimension) =
+  Dimension(u1.K - u2.K, u1.s - u2.s, u1.m - u2.m, 
+            u1.g - u2.g, u1.cd - u2.cd, u1.mol - u2.mol, u1.A - u2.A)
++(u1::Dimension, u2::Dimension) = u1 == u2 ? u1 : throw(UnitError())
+-(u1::Dimension, u2::Dimension) = u1 == u2 ? u1 : throw(UnitError())
+^(u1::Dimension, s::Integer) =
+  Dimension(u1.K*s, u1.s*s, u1.m*s, u1.g*s, u1.cd*s, u1.mol*s, u1.A*s)
+^(u1::Dimension, s::Rational) =
+  Dimension(u1.K*s, u1.s*s, u1.m*s, u1.g*s, u1.cd*s, u1.mol*s, u1.A*s)
+*(u1::Dimension, s::Number) = u1
+*(s::Number, u1::Dimension) = u1
+/(u1::Dimension, s::Number) = u1
+/(s::Number, u1::Dimension) = u1^(-s)
+
+# Algebra with units
+*(u1::Unit, u2::Unit) = Unit(u1.d * u2.d, u1.f*u2.f)
+/(u1::Unit, u2::Unit) = Unit(u1.d / u2.d, u1.f/u2.f)
++(u1::Unit, u2::Unit) = u1.d == u2.d ? u1 : throw(UnitError())
+-(u1::Unit, u2::Unit) = u1.d == u2.d ? u1 : throw(UnitError()) 
+^(u1::Unit, s::Integer) = Unit(u1.d^s, u1.f^s)
+^(u1::Unit, s::Rational) = Unit(u1.d^s, u1.f^s)
+*(u1::Unit, s::Number) = Unit(u1.d, u1.f*s)
+*(s::Number, u1::Unit) = u1*s
+/(u1::Unit, s::Number) = Unit(u1.d, u1.f/s)
+/(s::Number, u1::Unit) = u1^(-s)
+
+# Show pretty representation
+function show(io::IO, u::Unit)
+  unit = u.d.mol != 0 ? ( u.d.mol == 1 ? "mol * " : ( u.d.mol < 0 ? "mol^($(float(u.d.mol))) * " : "mol^$(float(u.d.mol)) * ") ) : ""
+  unit *= u.d.g != 0 ? ( u.d.g == 1 ? "g * " : ( u.d.g < 0 ? "g^($(float(u.d.g))) * " : "g^$(float(u.d.g)) * ") ) : ""
+  unit *= u.d.m != 0 ? ( u.d.m == 1 ? "m * " : ( u.d.m < 0 ? "m^($(float(u.d.m))) * " : "m^$(float(u.d.m)) * ") ) : ""
+  unit *= u.d.s != 0 ? ( u.d.s == 1 ? "s * " : ( u.d.s < 0 ? "s^($(float(u.d.s))) * " : "s^$(float(u.d.s)) * ") ) : ""
+  unit *= u.d.K != 0 ? ( u.d.k == 1 ? "k * " : ( u.d.k < 0 ? "k^($(float(u.d.k))) * " : "k^$(float(u.d.k)) * ") ) : ""
+  unit *= u.d.cd != 0 ? ( u.d.cd == 1 ? "cd * " : ( u.d.cd < 0 ? "cd^($(float(u.d.cd))) * " : "cd^$(float(u.d.cd)) * ") ) : ""
+  unit *= u.d.A != 0 ? ( u.d.A == 1 ? "A * " : ( u.d.A < 0 ? "A^($(float(u.d.A))) * " : "A^$(float(u.d.A)) * ") ) : ""
+  # Remove trailing "* "
+  unit = unit[1:(end -2)]
+  u.f != 1 ? println(io, "$(float(u.f)) $unit") : println(io, "$unit")
+end
+
+function show(io::IO, d::Dimension)
+  unit = d.mol != 0 ? ( d.mol == 1 ? "mol * " : ( d.mol < 0 ? "mol^($(float(d.mol))) * " : "mol^$(float(d.mol)) * ") ) : ""
+  unit *= d.g != 0 ? ( d.g == 1 ? "g * " : ( d.g < 0 ? "g^($(float(d.g))) * " : "g^$(float(d.g)) * ") ) : ""
+  unit *= d.m != 0 ? ( d.m == 1 ? "m * " : ( d.m < 0 ? "m^($(float(d.m))) * " : "m^$(float(d.m)) * ") ) : ""
+  unit *= d.s != 0 ? ( d.s == 1 ? "s * " : ( d.s < 0 ? "s^($(float(d.s))) * " : "s^$(float(d.s)) * ") ) : ""
+  unit *= d.K != 0 ? ( d.k == 1 ? "k * " : ( d.k < 0 ? "k^($(float(d.k))) * " : "k^$(float(d.k)) * ") ) : ""
+  unit *= d.cd != 0 ? ( d.cd == 1 ? "cd * " : ( d.cd < 0 ? "cd^($(float(d.cd))) * " : "cd^$(float(d.cd)) * ") ) : ""
+  unit *= d.A != 0 ? ( d.A == 1 ? "A * " : ( d.A < 0 ? "A^($(float(d.A))) * " : "A^$(float(d.A)) * ") ) : ""
+  # Remove trailing "* "
+  unit = unit[1:(end -2)]
+  unit == "" && (unit = "none")
+  println(io, "$unit")
+end
+
+
+# Prefixes
+const prefixes = {"" => 1//1,"Y" => BigInt(1e24)//1, "Z" => BigInt(1e21)//1, 
+                  "E" => int(1e18)//1, "P" => int(1e15)//1,
+                  "T" => int(1e12)//1, "G" => int(1e9)//1, "M" => int(1e6), "k" => int(1e3),
+                  "h" => int(1e2)//1, "da" => int(1e1)//1, "d" => 1//int(1e1), "c" => 1//int(1e2),
+                  "m" => 1//int(1e3), "u" => 1//int(1e6), "n" => 1//int(1e9), "p" => 1//int(1e12),
+                  "f" => 1//int(1e15), "a" => 1//int(1e18), "z" => 1//BigInt(1e21),"y" => 1//BigInt(1e24)}
+
+# SI units                  
+const SI_units = {"K" => Unit(Dimension(1//1,0,0,0,0,0,0),1//1),
+                  "s" => Unit(Dimension(0,1//1,0,0,0,0,0),1//1),
+                  "m" => Unit(Dimension(0, 0, 1//1, 0, 0, 0, 0), 1//1),
+                  "g" => Unit(Dimension(0,0,0,1//1,0,0,0),1//1),
+                  "cd" => Unit(Dimension(0,0,0,0,1//1,0,0),1//1),
+                  "mol" => Unit(Dimension(0,0,0,0,0,1//1,0),1//1),
+                  "A" => Unit(Dimension(0,0,0,0,0,0,1//1),1//1),
+                  "none" => Unit(Dimension(0,0,0,0,0,0,0),1//1)}
+
+# Automagically generate the SI units
+for (pr,prval) = prefixes
+    for (key,val) = SI_units
+        unit_name = parse(pr*key)
+        unit = Unit(val.d, val.f*prval)
+        @eval const $unit_name = $unit
+    end
+end
+
+# Derived units
+const derived_units = {"M" => mol/dm^3,
+                       "L" => dm^3,
+                      "ha" => 100//1*m^2,
+                      "Hz" => 1/s,
+                      "N" => m*kg/s^2,
+                      "Pa" => kg/m/s^2,
+                      "J" => m^2*kg/s^2,
+                      "W" => m^2*kg/s^3,
+                      "C" => s*A,
+                      "V" => m^2*kg/s^3/A,
+                      "F" => s^4*A^2/kg/m^2,
+                      "O" => m^2*kg/s^3/A^2,
+                      "S" => s^3*A^2/kg/m^2}
+
+# Automagically generate the derived units
+for (pr,prval) = prefixes
+    for (key,val) = derived_units
+        unit_name = parse(pr*key)
+        unit = Unit(val.d, val.f*prval)
+        @eval const $unit_name = $unit
+    end
+end
+
+# Create a unit object from a string that is parsed with these constants
+Unit(s::ASCIIString) = eval(parse(s))
+
+######################################
+###  Some convenient conversions  ####
+######################################
 # Facilitate translating dicts into ordered dicts
 function convert{T <: Any}(::Type{OrderedDict{String, T}}, x::Dict{String, T})
     out =  OrderedDict{String, T}()
@@ -21,25 +164,34 @@ function convert{T <: Any}(::Type{OrderedDict{String, T}}, x::Nothing)
     return OrderedDict{String, T}()
 end
 
+##################################################
+###  Datatypes for type description of model  ####
+##################################################
+
 # Basic datatypes
 type Parameter
     Value::Float64
+    Unit::Unit
 end
 type Forcing   
     Time::Array{Float64, 1}
     Value::Array{Float64, 1}
+    Unit::Unit
 end
 type Equation
     Expr::Union(Expr, Symbol, Number)
-    Exported::Bool    
+    Exported::Bool
+    Dim::Dimension
 end 
 type Species
     Value::Float64
     Compartment::String
+    Unit::Unit
 end
 type Compartment
-    InputType::String # Parameter | Constant | State | Forcing
+    InputType::String # Parameter | State
     Value::Float64
+    Unit::Unit
 end
 type Reactant
     Name::String
@@ -56,6 +208,7 @@ type MEReaction
     From::Array{String, 1}
     To::Array{String, 1}
     Expr::Union(Expr, Symbol)
+    Dim::Dimension
 end
 type Reaction
     Substrates::Array{Reactant, 1}
@@ -63,6 +216,7 @@ type Reaction
     Expr::Union(Expr, Symbol)
     Compartment::String
     Exported::Bool
+    Dim::Dimension
 end
 
 # Container for the structured description of the simulation language
