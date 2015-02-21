@@ -69,6 +69,7 @@ function parse_equation(s::ASCIIString, exported)
   c = 1
   name = ""
   expr = ""
+  unit = ""
   # Process non-blank tokens
   for i in sentence
     i == "" && continue
@@ -82,13 +83,17 @@ function parse_equation(s::ASCIIString, exported)
     # The third token should be the equal sign, otherwise we have an error
     elseif c == 3
       i != "=" ? error("Error in equation $name: I was expecting an equal = sign.") : (c = 4)
-    # The fourth (and posterior) token should be the expression
-    elseif c == 4
+    # The fourth until the in keyword should be the mathematical expression
+    elseif (c == 4) & (i != "in")
       expr *= i
+    elseif (c == 4) & (i == "in")
+      c = 5
+    else
+      unit *= i
     end
   end
   # Make sure that we have a valid mathematical expression. If not, just raise an error
-  eq = try Equation(parse(expr), exported) catch 
+  eq = try Equation(parse(expr), exported, Dimension(Unit(unit))) catch 
       error("Error in equation $name: I don't understand the equation.") end
   return name, eq
 end
@@ -100,6 +105,7 @@ function parse_reaction(s::ASCIIString, exported)
   name = ""
   compartment = ""
   expr = ""
+  unit = ""
   substrates = ASCIIString[]
   stoich_substrate = Float64[]
   products = ASCIIString[]
@@ -144,10 +150,10 @@ function parse_reaction(s::ASCIIString, exported)
         error("Error in reaction $name: I could not parse the substrates correctly.")
       end
     # The token "->" is used to separate substrates from products
-    elseif (c == 7) & (i == "->")
+    elseif (c == 7) && (i == "->")
       c = 8
-    # All tokens after "->" represent products
-    elseif c == 8 & (i != "+")
+    # All tokens after "->" represent products until the "in" keyword
+    elseif (c == 8) & (i != "in") & (i != "+")
       try
         isa(parse(i), Number) ? 
               push!(stoich_product, parse(i)) :
@@ -155,6 +161,10 @@ function parse_reaction(s::ASCIIString, exported)
       catch
         error("Error in reaction $name: I could not parse the products correctly.")
       end
+    elseif (c == 8) & (i == "in")
+      c = 9
+    elseif (c == 9)
+      unit *= i
     end
   end
   # Try to catch situations where the stoichiometry was not given or when the was a parsing error...
@@ -173,7 +183,7 @@ function parse_reaction(s::ASCIIString, exported)
   Substrates = [Reactant(substrates[i], stoich_substrate[i]) for i = 1:length(substrates)] 
   Products = [Reactant(products[i], stoich_product[i]) for i = 1:length(products)]
   # Construct the Reaction object and return it
-  return name, Reaction(Substrates, Products, rhs, compartment, exported)
+  return name, Reaction(Substrates, Products, rhs, compartment, exported, Dimension(Unit(unit)))
 end
 
 ## Parse mereaction
@@ -185,6 +195,7 @@ function parse_mereaction(s::ASCIIString)
   expr = ""
   reactant = ""
   product = ""
+  unit = ""
   # Process non-blank tokens
   for i in sentence
     i == "" && continue
@@ -210,8 +221,12 @@ function parse_mereaction(s::ASCIIString)
     elseif (c == 5) & (i == "->")
       c = 6
     # After the -> we can producess the destination of the transition rule
-    elseif (c == 6) 
+    elseif (c == 6) & (i != "in")
       product *= i
+    elseif (c == 6) & (i == "in")
+      c = 7
+    elseif (c == 7)  
+      unit *= i
     end
   end
   # Now we need to extract the components and the forms for origin and destination
@@ -220,7 +235,7 @@ function parse_mereaction(s::ASCIIString)
   species2, components2, to = interpret_master_equation(product)
   species1 != species2 && error("Error in mereaction $name: The species on each side of the transition rule are not the same.")
   components1 != components2 && error("Error in mereaction $name: The components on each side of the transition rule are not the same or they are not in the same order.")
-  return name, MEReaction(species1, components1, from, to, parse(expr))
+  return name, MEReaction(species1, components1, from, to, parse(expr), Dimension(Unit(unit)))
 end
 
 # Parse the components and forms of a transition rule or mevariable
@@ -240,6 +255,7 @@ function parse_parameter(s::ASCIIString)
   c = 1
   name = ""
   value = 0.0
+  unit = ""
   # Process non-blank tokens
   for i in sentence
     i == "" && continue
@@ -254,11 +270,15 @@ function parse_parameter(s::ASCIIString)
     elseif c == 3
       i != "=" ? error("Error in parameter $name: I was expecting an equal = sign.") : (c = 4)
     # The fourth (and posterior) token should be the expression
-    elseif c == 4
+    elseif (c == 4) & (i != "in")
       try value = parse(i) catch error("Error in parameter $name: You must supply a value") end
+    elseif (c == 4) & (i == "in")
+      c = 5
+    elseif (c == 5)
+      unit *= i
     end
   end
-  return name, Parameter(value)
+  return name, Parameter(value, Unit(unit))
 end
 
 ## Parse variable_compartment
@@ -267,6 +287,7 @@ function parse_variable_compartment(s::ASCIIString)
   c = 1
   name = ""
   value = 0.0
+  unit = ""
   # Process non-blank tokens
   for i in sentence
     i == "" && continue
@@ -281,11 +302,15 @@ function parse_variable_compartment(s::ASCIIString)
     elseif c == 3
       i != "=" ? error("Error in compartment $name: I was expecting an equal = sign.") : (c = 4)
     # The fourth (and posterior) token should be the expression
-    elseif c == 4
+    elseif c == 4 & (i != "in")
       try value = parse(i) catch error("Error in compartment $name: You must supply a value") end
+    elseif (c == 4) & (i == "in")
+      c = 5
+    elseif (c == 5)
+      unit *= i
     end
   end
-  return name, Compartment("State", value)
+  return name, Compartment("State", value, Unit(unit))
 end
 
 ## Parse constant_compartment
@@ -294,6 +319,7 @@ function parse_constant_compartment(s::ASCIIString)
   c = 1
   name = ""
   value = 0.0
+  unit = ""
   # Process non-blank tokens
   for i in sentence
     i == "" && continue
@@ -308,11 +334,15 @@ function parse_constant_compartment(s::ASCIIString)
     elseif c == 3
       i != "=" ? error("Error in compartment $name: I was expecting an equal = sign.") : (c = 4)
     # The fourth (and posterior) token should be the expression
-    elseif c == 4
+    elseif (c == 4) & (i != "in")
       try value = parse(i) catch error("Error in compartment $name: You must supply a value") end
+    elseif (c == 4) & (i == "in")
+      c = 5
+    elseif (c == 5)
+      unit *= i
     end
   end
-  return name, Compartment("Constant", value)
+  return name, Compartment("Constant", value, Unit(unit))
 end
 
 ## Parse forcing
@@ -322,6 +352,7 @@ function parse_forcing(s::ASCIIString)
   name = ""
   values = ""
   times = ""
+  unit = ""
   # Process non-blank tokens
   for i in sentence
     i == "" && continue
@@ -340,14 +371,18 @@ function parse_forcing(s::ASCIIString)
       values *= i
     elseif (c == 4) & (i == "at")
       c = 5
-    elseif c == 5
+    elseif (c == 5) & (i != "in")
       times *= i
+    elseif (c == 5) & (i == "in")
+      c = 6
+    else
+      unit *= i
     end
   end
   c == 4 && error("Error in forcing $name: I could not parse the times correctly.") 
   values_vec = eval(parse(values))
   times_vec = eval(parse(times))
-  return name, Forcing(times_vec, values_vec)
+  return name, Forcing(times_vec, values_vec, Unit(unit))
 end
 
 ## Parse species
@@ -357,6 +392,7 @@ function parse_species(s::ASCIIString)
   name = ""
   value = ""
   compartment = ""
+  unit = ""
   # Process non-blank tokens
   for i in sentence
     i == "" && continue
@@ -382,11 +418,15 @@ function parse_species(s::ASCIIString)
           error("Error in species $name: I was expecting an equal = sign.") : 
           (c = 6)
     # The sixth token should be the value
-    elseif c == 6
+    elseif (c == 6) & (i != "in")
       try value = parse(i) catch error("Error in species $name: You must supply a value") end
+    elseif (c == 6) & (i == "in")
+      c = 7
+    else
+      unit *= i
     end
   end
-  return name, Species(value, compartment)
+  return name, Species(value, compartment, Unit(unit))
 end
 
 # Parse component
@@ -426,11 +466,11 @@ function parse_component(s::ASCIIString)
           error("Error in component $name: I was expecting an equal = sign.") : 
           (c = 7)
     # The remaining tokens are the values
-    elseif c == 7
+    elseif (c == 7)
       values *= i
     end
   end
-  c == 3 && error("Error in component $name: I could not parse correctly. Did you keep spaces between the brackets and contents?")
+  c == 3 && error("Error in component $name: I could not parse it correctly. Did you keep spaces between the brackets and contents?")
   values_vec = eval(parse(values))
   forms_vec = eval(parse(forms))
   return name, Component(species, values_vec, forms_vec)
