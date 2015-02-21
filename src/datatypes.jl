@@ -28,8 +28,6 @@ immutable Unit
   f::Number
 end
 
-Dimension(u::Unit) = Dimension(u.K, u.s, u.m, u.g, u.cd, u.mol, u.A)
-
 # Unit error (when we try to add or substract different units)
 type UnitError <: Exception
 end
@@ -72,12 +70,12 @@ function show(io::IO, u::Unit)
   unit *= u.d.g != 0 ? ( u.d.g == 1 ? "g * " : ( u.d.g < 0 ? "g^($(float(u.d.g))) * " : "g^$(float(u.d.g)) * ") ) : ""
   unit *= u.d.m != 0 ? ( u.d.m == 1 ? "m * " : ( u.d.m < 0 ? "m^($(float(u.d.m))) * " : "m^$(float(u.d.m)) * ") ) : ""
   unit *= u.d.s != 0 ? ( u.d.s == 1 ? "s * " : ( u.d.s < 0 ? "s^($(float(u.d.s))) * " : "s^$(float(u.d.s)) * ") ) : ""
-  unit *= u.d.K != 0 ? ( u.d.k == 1 ? "k * " : ( u.d.k < 0 ? "k^($(float(u.d.k))) * " : "k^$(float(u.d.k)) * ") ) : ""
+  unit *= u.d.K != 0 ? ( u.d.K == 1 ? "k * " : ( u.d.K < 0 ? "K^($(float(u.d.K))) * " : "K^$(float(u.d.K)) * ") ) : ""
   unit *= u.d.cd != 0 ? ( u.d.cd == 1 ? "cd * " : ( u.d.cd < 0 ? "cd^($(float(u.d.cd))) * " : "cd^$(float(u.d.cd)) * ") ) : ""
   unit *= u.d.A != 0 ? ( u.d.A == 1 ? "A * " : ( u.d.A < 0 ? "A^($(float(u.d.A))) * " : "A^$(float(u.d.A)) * ") ) : ""
   # Remove trailing "* "
   unit = unit[1:(end -2)]
-  u.f != 1 ? println(io, "$(float(u.f)) $unit") : println(io, "$unit")
+  u.f != 1 ? print(io, "$(float(u.f)) $unit") : print(io, "$unit")
 end
 
 function show(io::IO, d::Dimension)
@@ -85,23 +83,23 @@ function show(io::IO, d::Dimension)
   unit *= d.g != 0 ? ( d.g == 1 ? "g * " : ( d.g < 0 ? "g^($(float(d.g))) * " : "g^$(float(d.g)) * ") ) : ""
   unit *= d.m != 0 ? ( d.m == 1 ? "m * " : ( d.m < 0 ? "m^($(float(d.m))) * " : "m^$(float(d.m)) * ") ) : ""
   unit *= d.s != 0 ? ( d.s == 1 ? "s * " : ( d.s < 0 ? "s^($(float(d.s))) * " : "s^$(float(d.s)) * ") ) : ""
-  unit *= d.K != 0 ? ( d.k == 1 ? "k * " : ( d.k < 0 ? "k^($(float(d.k))) * " : "k^$(float(d.k)) * ") ) : ""
+  unit *= d.K != 0 ? ( d.K == 1 ? "K * " : ( d.K < 0 ? "K^($(float(d.K))) * " : "K^$(float(d.K)) * ") ) : ""
   unit *= d.cd != 0 ? ( d.cd == 1 ? "cd * " : ( d.cd < 0 ? "cd^($(float(d.cd))) * " : "cd^$(float(d.cd)) * ") ) : ""
   unit *= d.A != 0 ? ( d.A == 1 ? "A * " : ( d.A < 0 ? "A^($(float(d.A))) * " : "A^$(float(d.A)) * ") ) : ""
   # Remove trailing "* "
   unit = unit[1:(end -2)]
   unit == "" && (unit = "none")
-  println(io, "$unit")
+  print(io, "$unit")
 end
 
 
 # Prefixes
-const prefixes = {"" => 1//1,"Y" => BigInt(1e24)//1, "Z" => BigInt(1e21)//1, 
+const prefixes = {"" => 1//1, 
                   "E" => int(1e18)//1, "P" => int(1e15)//1,
                   "T" => int(1e12)//1, "G" => int(1e9)//1, "M" => int(1e6), "k" => int(1e3),
                   "h" => int(1e2)//1, "da" => int(1e1)//1, "d" => 1//int(1e1), "c" => 1//int(1e2),
                   "m" => 1//int(1e3), "u" => 1//int(1e6), "n" => 1//int(1e9), "p" => 1//int(1e12),
-                  "f" => 1//int(1e15), "a" => 1//int(1e18), "z" => 1//BigInt(1e21),"y" => 1//BigInt(1e24)}
+                  "f" => 1//int(1e15), "a" => 1//int(1e18)}
 
 # SI units                  
 const SI_units = {"K" => Unit(Dimension(1//1,0,0,0,0,0,0),1//1),
@@ -148,6 +146,7 @@ end
 
 # Create a unit object from a string that is parsed with these constants
 Unit(s::ASCIIString) = s == "" ? none : eval(parse(s))
+Dimension(u::Unit) = Dimension(u.d.K, u.d.s, u.d.m, u.d.g, u.d.cd, u.d.mol, u.d.A)
 
 ######################################
 ###  Some convenient conversions  ####
@@ -260,7 +259,7 @@ type OdeSorted
     SortedEquations::Array{Dict{String, Equation}, 1}
 end
 
-# Container that contains the generated code in Julia. it 
+# Container that contains the generated code in Julia. 
 type OdeModel
     States::OrderedDict{String, Any}
     Parameters::OrderedDict{String, Any}
