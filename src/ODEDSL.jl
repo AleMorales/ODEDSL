@@ -1,6 +1,9 @@
 module ODEDSL
 
-# package code goes here
+# Include the source files
+include("utils.jl")
 include("datatypes.jl")
 include("parser.jl")
-end # module
+include("conversion.jl")
+
+end
