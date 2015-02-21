@@ -176,6 +176,63 @@ function parse_reaction(s::ASCIIString, exported)
   return name, Reaction(Substrates, Products, rhs, compartment, exported)
 end
 
+## Parse mereaction
+# mereaction vPQH2u = PSII_Kunbind_PQH2 for PSII[ [Qb[2] ] -> PSII[ [Qb[e] ]
+function parse_mereaction(s::ASCIIString)
+  sentence = tokenize(strip(s))
+  c = 1
+  name = ""
+  expr = ""
+  reactant = ""
+  product = ""
+  # Process non-blank tokens
+  for i in sentence
+    i == "" && continue
+    # The first token should be the keyword
+    if c == 1
+      c = 2
+    # The second token should be the name of the variable
+    elseif c == 2
+      name = i
+      c = 3
+    # The third token should be the equal sign, otherwise we have an error
+    elseif c == 3
+      i != "=" ? error("Error in mereaction $name: I was expecting an equal = sign.") : (c = 4)
+    # The fourth (and posterior) token should be the rate equation until the keyword for
+    elseif (c == 4) & (i != "for")
+      expr *= i
+    # Start processing the transition rule
+    elseif (c == 4) & (i == "for")
+      c = 5
+    # Until "->" we are processing the origin of the transition rule
+    elseif (c == 5) & (i != "->")
+      reactant *= i
+    elseif (c == 5) & (i == "->")
+      c = 6
+    # After the -> we can producess the destination of the transition rule
+    elseif (c == 6) 
+      product *= i
+    end
+  end
+  # Now we need to extract the components and the forms for origin and destination
+  # This is better done with regular expressions and it is processed in a separate function
+  species1, components1, from = interpret_master_equation(reactant)
+  species2, components2, to = interpret_master_equation(product)
+  species1 != species2 && error("Error in mereaction $name: The species on each side of the transition rule are not the same.")
+  components1 != components2 && error("Error in mereaction $name: The components on each side of the transition rule are not the same or they are not in the same order.")
+  return name, MEReaction(species1, components1, from, to, parse(expr))
+end
+
+# Parse the components and forms of a transition rule or mevariable
+# species[[component[form]...]]
+function interpret_master_equation(reaction::ASCIIString)
+    species = strip(matchall(r"^[a-zA-Z0-9_\s]+(?=\[\[)", strip(reaction))[1])
+    component_forms = strip(replace(reaction, species, ""))[2:(end-1)]
+    forms = matchall(r"\[[a-zA-Z0-9_\s]+\]", component_forms)
+    components = convert(Array{String, 1}, matchall(r"(?<=[\s\]])*[a-zA-Z0-9_]+(?=\[)",component_forms))
+    cleaned_forms = convert(Array{String, 1}, [split(x,r"[\[\]]")[2] for x in forms])
+    return species, components, cleaned_forms
+end
 
 ## Parse parameter
 function parse_parameter(s::ASCIIString)
@@ -332,6 +389,52 @@ function parse_species(s::ASCIIString)
   return name, Species(value, compartment)
 end
 
+# Parse component
+function parse_component(s::ASCIIString)
+  sentence = tokenize(strip(s))
+  c = 1
+  name = ""
+  values = ""
+  species = ""
+  forms = ""
+  # Process non-blank tokens
+  for i in sentence
+    i == "" && continue
+    # The first token should be the keyword
+    if c == 1
+      c = 2
+    # The second token should be the name of the parameter
+    elseif c == 2
+      name = i
+      c = 3
+    # The tokens between second and the keyword "of" should be an array of forms
+    elseif c == 3
+      forms *= i
+      i == "]" && (c = 4)
+    # The token after the array of forms should be the keyword "of"
+    elseif c == 4
+      i != "of" ? 
+          error("Error in component $name: I was expecting the \"of\" keyword to specify the species.") : 
+          (c = 5)
+    # After than we get the species
+    elseif c == 5
+      species = i
+      c = 6
+    # Then an = sign
+    elseif c == 6
+      i != "=" ? 
+          error("Error in component $name: I was expecting an equal = sign.") : 
+          (c = 7)
+    # The remaining tokens are the values
+    elseif c == 7
+      values *= i
+    end
+  end
+  c == 3 && error("Error in component $name: I could not parse correctly. Did you keep spaces between the brackets and contents?")
+  values_vec = eval(parse(values))
+  forms_vec = eval(parse(forms))
+  return name, Component(species, values_vec, forms_vec)
+end
 
 #### Create a dictionary that stores all the elements of the model description ####
 
@@ -346,11 +449,10 @@ function process_file(file::ASCIIString)
             "component" => Dict{String, Component}(),
             "equation" => Dict{String, Equation}(),
             "reaction" => Dict{String, Reaction}(),
-            "mereaction" => Dict{String, MEReaction}(),
             "meequation" => Dict{String, Equation}(),
             "constant_compartment" => Dict{String, Compartment}(),
             "export_meequation" => Dict{String, Equation}(),
-            "export_mereaction" => Dict{String, MEReaction}(),
+            "mereaction" => Dict{String, MEReaction}(),
             "export_reaction" => Dict{String, Reaction}(),
             "export_equation" => Dict{String, Equation}(),
             "variable_compartment" => Dict{String, Compartment}()} 
@@ -403,12 +505,28 @@ function process_file(file::ASCIIString)
       name, object = parse_species(i)
       docs["species"][name] = object
     end
+    for i = source_lines["component"]
+      name, object = parse_component(i)
+      docs["component"][name] = object
+    end
+    for i = source_lines["mereaction"]
+      name, object = parse_mereaction(i)
+      docs["mereaction"][name] = object
+    end
+     for i = source_lines["meequation"]
+      name, object = parse_equation(i, false)
+      docs["meequation"][name] = object
+    end
+    for i = source_lines["export_meequation"]
+      name, object = parse_equation(i, true)
+      docs["export_meequation"][name] = object
+    end       
 
-    # Merge exported and non-exported variables
+    # Merge exported and non-exported equations and reactions
     merge!(docs["equation"], docs["export_equation"])
     merge!(docs["reaction"], docs["export_reaction"])
-    merge!(docs["mereaction"], docs["export_mereaction"])
     merge!(docs["meequation"], docs["export_meequation"])
+
     # Merge the different types of compartments
     docs["compartment"] = merge(docs["constant_compartment"], docs["variable_compartment"])
 
@@ -417,7 +535,3 @@ function process_file(file::ASCIIString)
                    docs["reaction"], docs["mereaction"], docs["meequation"])        
 
 end
-
-# Still need to write the parsers for:
-#"export_meequation","export_mereaction",
-#"mereaction", #"component", "meequation"
