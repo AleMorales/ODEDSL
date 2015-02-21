@@ -147,7 +147,7 @@ for (pr,prval) = prefixes
 end
 
 # Create a unit object from a string that is parsed with these constants
-Unit(s::ASCIIString) = eval(parse(s))
+Unit(s::ASCIIString) = s == "" ? none : eval(parse(s))
 
 ######################################
 ###  Some convenient conversions  ####
