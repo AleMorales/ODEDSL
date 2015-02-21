@@ -310,7 +310,7 @@ function parse_variable_compartment(s::ASCIIString)
       unit *= i
     end
   end
-  return name, Compartment("State", value, Unit(unit))
+  return name, Compartment("state", value, Unit(unit))
 end
 
 ## Parse constant_compartment
@@ -342,7 +342,7 @@ function parse_constant_compartment(s::ASCIIString)
       unit *= i
     end
   end
-  return name, Compartment("Constant", value, Unit(unit))
+  return name, Compartment("parameter", value, Unit(unit))
 end
 
 ## Parse forcing
@@ -533,6 +533,10 @@ function process_file(file::ASCIIString)
       name, object = parse_parameter(i)
       docs["constant"][name] = object
     end
+    for i = source_lines["parameter"]
+      name, object = parse_parameter(i)
+      docs["parameter"][name] = object
+    end    
     for i = source_lines["state"]
       name, object = parse_parameter(i)
       docs["state"][name] = object
