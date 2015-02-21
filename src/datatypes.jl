@@ -64,31 +64,30 @@ showerror(io::IO, e::UnitError) = print(io, "An attempt was made to add or subst
 /(u1::Unit, s::Number) = Unit(u1.d, u1.f/s)
 /(s::Number, u1::Unit) = u1^(-s)
 
-# Show pretty representation
+# Show pretty representation (still need to improve more...)
 function show(io::IO, u::Unit)
-  unit = u.d.mol != 0 ? ( u.d.mol == 1 ? "mol * " : ( u.d.mol < 0 ? "mol^($(float(u.d.mol))) * " : "mol^$(float(u.d.mol)) * ") ) : ""
-  unit *= u.d.g != 0 ? ( u.d.g == 1 ? "g * " : ( u.d.g < 0 ? "g^($(float(u.d.g))) * " : "g^$(float(u.d.g)) * ") ) : ""
-  unit *= u.d.m != 0 ? ( u.d.m == 1 ? "m * " : ( u.d.m < 0 ? "m^($(float(u.d.m))) * " : "m^$(float(u.d.m)) * ") ) : ""
-  unit *= u.d.s != 0 ? ( u.d.s == 1 ? "s * " : ( u.d.s < 0 ? "s^($(float(u.d.s))) * " : "s^$(float(u.d.s)) * ") ) : ""
-  unit *= u.d.K != 0 ? ( u.d.K == 1 ? "k * " : ( u.d.K < 0 ? "K^($(float(u.d.K))) * " : "K^$(float(u.d.K)) * ") ) : ""
-  unit *= u.d.cd != 0 ? ( u.d.cd == 1 ? "cd * " : ( u.d.cd < 0 ? "cd^($(float(u.d.cd))) * " : "cd^$(float(u.d.cd)) * ") ) : ""
-  unit *= u.d.A != 0 ? ( u.d.A == 1 ? "A * " : ( u.d.A < 0 ? "A^($(float(u.d.A))) * " : "A^$(float(u.d.A)) * ") ) : ""
+  unit = u.d.mol != 0 ? ( u.d.mol - 1 < eps(1.0) ? "*mol" : ( u.d.mol < 0 ? "/mol^$(-float(u.d.mol))" : "*mol^$(float(u.d.mol))") ) : ""
+  unit *= u.d.g != 0 ? ( u.d.g == 1 ? "*g" : ( u.d.g < 0 ? "/g^$(-float(u.d.g))" : "*g^$(float(u.d.g))") ) : ""
+  unit *= u.d.m != 0 ? ( u.d.m == 1 ? "*m" : ( u.d.m < 0 ? "/m^$(-float(u.d.m))" : "*m^$(float(u.d.m))") ) : ""
+  unit *= u.d.s != 0 ? ( u.d.s == 1 ? "*s" : ( u.d.s < 0 ? "/s^$(-float(u.d.s))" : "*s^$(float(u.d.s))") ) : ""
+  unit *= u.d.K != 0 ? ( u.d.K == 1 ? "*k" : ( u.d.K < 0 ? "/K^$(-float(u.d.K))" : "*K^$(float(u.d.K))") ) : ""
+  unit *= u.d.cd != 0 ? ( u.d.cd == 1 ? "*cd" : ( u.d.cd < 0 ? "/cd^$(-float(u.d.cd))" : "*cd^$(float(u.d.cd))") ) : ""
+  unit *= u.d.A != 0 ? ( u.d.A == 1 ? "*A" : ( u.d.A < 0 ? "/A^$(-float(u.d.A))" : "*A^$(float(u.d.A))") ) : ""
   # Remove trailing "* "
-  unit = unit[1:(end -2)]
-  u.f != 1 ? print(io, "$(float(u.f)) $unit") : print(io, "$unit")
+  unit = unit[2:end]
+  print(io, "$(float(u.f)) $unit")
 end
 
 function show(io::IO, d::Dimension)
-  unit = d.mol != 0 ? ( d.mol == 1 ? "mol * " : ( d.mol < 0 ? "mol^($(float(d.mol))) * " : "mol^$(float(d.mol)) * ") ) : ""
-  unit *= d.g != 0 ? ( d.g == 1 ? "g * " : ( d.g < 0 ? "g^($(float(d.g))) * " : "g^$(float(d.g)) * ") ) : ""
-  unit *= d.m != 0 ? ( d.m == 1 ? "m * " : ( d.m < 0 ? "m^($(float(d.m))) * " : "m^$(float(d.m)) * ") ) : ""
-  unit *= d.s != 0 ? ( d.s == 1 ? "s * " : ( d.s < 0 ? "s^($(float(d.s))) * " : "s^$(float(d.s)) * ") ) : ""
-  unit *= d.K != 0 ? ( d.K == 1 ? "K * " : ( d.K < 0 ? "K^($(float(d.K))) * " : "K^$(float(d.K)) * ") ) : ""
-  unit *= d.cd != 0 ? ( d.cd == 1 ? "cd * " : ( d.cd < 0 ? "cd^($(float(d.cd))) * " : "cd^$(float(d.cd)) * ") ) : ""
-  unit *= d.A != 0 ? ( d.A == 1 ? "A * " : ( d.A < 0 ? "A^($(float(d.A))) * " : "A^$(float(d.A)) * ") ) : ""
+  unit = d.mol != 0 ? ( d.mol == 1 ? "*mol" : ( d.mol < 0 ? "/mol^$(-float(d.mol))" : "*mol^$(float(d.mol))") ) : ""
+  unit *= d.g != 0 ? ( d.g == 1 ? "*g" : ( d.g < 0 ? "/g^$(-float(d.g))" : "*g^$(float(d.g))") ) : ""
+  unit *= d.m != 0 ? ( d.m == 1 ? "*m" : ( d.m < 0 ? "/m^$(-float(d.m))" : "*m^$(float(d.m))") ) : ""
+  unit *= d.s != 0 ? ( d.s == 1 ? "*s" : ( d.s < 0 ? "/s^$(-float(d.s))" : "*s^$(float(d.s))") ) : ""
+  unit *= d.K != 0 ? ( d.K == 1 ? "*k" : ( d.K < 0 ? "/K^$(-float(d.K))" : "*K^$(float(d.K))") ) : ""
+  unit *= d.cd != 0 ? ( d.cd == 1 ? "*cd" : ( d.cd < 0 ? "/cd^$(-float(d.cd))" : "*cd^$(float(d.cd))") ) : ""
+  unit *= d.A != 0 ? ( d.A == 1 ? "*A" : ( d.A < 0 ? "/A^$(-float(d.A))" : "*A^$(float(d.A))") ) : ""
   # Remove trailing "* "
-  unit = unit[1:(end -2)]
-  unit == "" && (unit = "none")
+  unit = unit[2:end]
   print(io, "$unit")
 end
 
@@ -170,12 +169,12 @@ end
 # Basic datatypes
 type Parameter
     Value::Float64
-    Unit::Unit
+    Units::Unit
 end
 type Forcing   
     Time::Array{Float64, 1}
     Value::Array{Float64, 1}
-    Unit::Unit
+    Units::Unit
 end
 type Equation
     Expr::Union(Expr, Symbol, Number)
@@ -185,12 +184,12 @@ end
 type Species
     Value::Float64
     Compartment::String
-    Unit::Unit
+    Units::Unit
 end
 type Compartment
     InputType::String # Parameter | State
     Value::Float64
-    Unit::Unit
+    Units::Unit
 end
 type Reactant
     Name::String
@@ -269,4 +268,83 @@ type OdeModel
     Jacobian::Function
 end
 
+
+##################################################
+#######  Methods to print the datatypes  ########
+##################################################
+
+function paste(sep, s...)
+    output = ""
+    for i in s
+        if(isa(i,String))
+            output *= i * sep
+            elseif isa(i,Array{ASCIIString,1}) || isa(i,Array{UTF8String,1}) || isa(i,Array{Any,1})
+            output *= paste(sep,i) * sep
+        end
+    end
+    return output
 end
+function paste{T <: String}(sep, s::Array{T,1})
+    output = ""
+    for i in s
+        output *= i * sep
+    end
+    return output
+end
+
+
+function show(io::IO, model::OdeSource)
+  print(io, 
+"""
+Constants:
+----------
+$(paste("\n", ["$(i[1]) = $(i[2])" for i in model.Constants]))
+Parameters:
+-----------
+$(paste("\n", ["$(i[1]) = $(i[2])" for i in model.Parameters]))
+Forcings:
+---------
+$(paste("\n", ["$(i[1]) = $(i[2])" for i in model.Forcings]))
+States:
+-------
+$(paste("\n", ["$(i[1]) = $(i[2])" for i in model.States]))
+Equations:
+----------
+$(paste("\n\n", ["$(i[1]) = $(i[2])" for i in model.Equations]))
+""")
+end
+
+
+function show(io::IO, model::OdeSorted)
+  print(io, 
+"""
+Constants:
+----------
+$(paste("\n", ["$(i[1]) = $(i[2])" for i in model.Constants]))
+Parameters:
+-----------
+$(paste("\n", ["$(i[1]) = $(i[2])" for i in model.Parameters]))
+Forcings:
+---------
+$(paste("\n", ["$(i[1]) = $(i[2])" for i in model.Forcings]))
+States:
+-------
+$(paste("\n", ["$(i[1]) = $(i[2])" for i in model.States]))
+Equations:
+----------
+$(prod([paste("\n\n", ["$(i[1]) = $(i[2])" for i in j]) for j in model.SortedEquations]))
+""")
+end
+show(io::IO, par::Parameter) = print(io,"$(par.Value*par.Units)")
+show(io::IO, eq::Equation) = print(io,"$(string(eq.Expr)) $(eq.Dim)")
+show(io::IO, f::Forcing) = print(io,"$(f.Value*f.Units.f) $(f.Units.d) at $(f.Time)")
+
+
+end
+
+
+
+
+
+
+
