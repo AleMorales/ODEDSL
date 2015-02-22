@@ -70,7 +70,7 @@ function show(io::IO, u::Unit)
   unit *= u.d.g != 0 ? ( u.d.g == 1 ? "*g" : ( u.d.g < 0 ? "/g^$(-float(u.d.g))" : "*g^$(float(u.d.g))") ) : ""
   unit *= u.d.m != 0 ? ( u.d.m == 1 ? "*m" : ( u.d.m < 0 ? "/m^$(-float(u.d.m))" : "*m^$(float(u.d.m))") ) : ""
   unit *= u.d.s != 0 ? ( u.d.s == 1 ? "*s" : ( u.d.s < 0 ? "/s^$(-float(u.d.s))" : "*s^$(float(u.d.s))") ) : ""
-  unit *= u.d.K != 0 ? ( u.d.K == 1 ? "*k" : ( u.d.K < 0 ? "/K^$(-float(u.d.K))" : "*K^$(float(u.d.K))") ) : ""
+  unit *= u.d.K != 0 ? ( u.d.K == 1 ? "*K" : ( u.d.K < 0 ? "/K^$(-float(u.d.K))" : "*K^$(float(u.d.K))") ) : ""
   unit *= u.d.cd != 0 ? ( u.d.cd == 1 ? "*cd" : ( u.d.cd < 0 ? "/cd^$(-float(u.d.cd))" : "*cd^$(float(u.d.cd))") ) : ""
   unit *= u.d.A != 0 ? ( u.d.A == 1 ? "*A" : ( u.d.A < 0 ? "/A^$(-float(u.d.A))" : "*A^$(float(u.d.A))") ) : ""
   # Remove trailing "* "
@@ -83,7 +83,7 @@ function show(io::IO, d::Dimension)
   unit *= d.g != 0 ? ( d.g == 1 ? "*g" : ( d.g < 0 ? "/g^$(-float(d.g))" : "*g^$(float(d.g))") ) : ""
   unit *= d.m != 0 ? ( d.m == 1 ? "*m" : ( d.m < 0 ? "/m^$(-float(d.m))" : "*m^$(float(d.m))") ) : ""
   unit *= d.s != 0 ? ( d.s == 1 ? "*s" : ( d.s < 0 ? "/s^$(-float(d.s))" : "*s^$(float(d.s))") ) : ""
-  unit *= d.K != 0 ? ( d.K == 1 ? "*k" : ( d.K < 0 ? "/K^$(-float(d.K))" : "*K^$(float(d.K))") ) : ""
+  unit *= d.K != 0 ? ( d.K == 1 ? "*K" : ( d.K < 0 ? "/K^$(-float(d.K))" : "*K^$(float(d.K))") ) : ""
   unit *= d.cd != 0 ? ( d.cd == 1 ? "*cd" : ( d.cd < 0 ? "/cd^$(-float(d.cd))" : "*cd^$(float(d.cd))") ) : ""
   unit *= d.A != 0 ? ( d.A == 1 ? "*A" : ( d.A < 0 ? "/A^$(-float(d.A))" : "*A^$(float(d.A))") ) : ""
   # Remove trailing "* "
@@ -310,7 +310,7 @@ States:
 $(paste("\n", ["$(i[1]) = $(i[2])" for i in model.States]))
 Equations:
 ----------
-$(paste("\n\n", ["$(i[1]) = $(i[2])" for i in model.Equations]))
+$(paste("\n\n", ["$(i[1]) ($(i[2].Dim)) = $(i[2])" for i in model.Equations]))
 """)
 end
 
@@ -332,11 +332,12 @@ States:
 $(paste("\n", ["$(i[1]) = $(i[2])" for i in model.States]))
 Equations:
 ----------
-$(prod([paste("\n\n", ["$(i[1]) = $(i[2])" for i in j]) for j in model.SortedEquations]))
+$(prod([paste("\n\n", "$(j[2]) ($(j[2].Dim))") for j in model.SortedEquations[1]]))
+$(prod([paste("\n\n", ["$(i[1]) ($(i[2].Dim)) = $(i[2])" for i in j]) for j in model.SortedEquations[2:end]]))
 """)
 end
 show(io::IO, par::Parameter) = print(io,"$(par.Value*par.Units)")
-show(io::IO, eq::Equation) = print(io,"$(string(eq.Expr)) $(eq.Dim)")
+show(io::IO, eq::Equation) = print(io,"$(string(eq.Expr))")
 show(io::IO, f::Forcing) = print(io,"$(f.Value*f.Units.f) $(f.Units.d) at $(f.Time)")
 
 
