@@ -317,17 +317,20 @@ function write_model_R!(States::OrderedDict{String, Any},
     names_states = string(collect(keys(States)))[8:(end-1)]
     println(f, """
 solver = function(y, times, func, parms, inputs) {
-sim = cvode_R(times = times, states = y,
+sim = as.matrix(cvode_R(times = times, states = y,
         parameters = parms, 
         forcings_data = inputs,
         settings = list(rtol = 1e-6, 
                   atol = 1e-6, maxsteps = 1e3, maxord = 5, hini = 1e-3, 
                   hmin = 0, hmax = 100, maxerr = 5, maxnonlin = 10,
                   maxconvfail = 10, method = "bdf", maxtime = 1, jacobian = 0),
-        model = func, jacobian = function(t, states, parameters, forcings) {0})
+        model = func, jacobian = function(t, states, parameters, forcings) {0}))
 colnames(sim) = c(\"time\", $names_states, $names_observed)
-return(sim)
-})""")
+class(sim) = c(\"deSolve\",\"matrix\")
+sim
+})
+test = sim($name)
+""")
     close(f)
     nothing
 end
