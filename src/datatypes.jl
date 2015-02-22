@@ -1,7 +1,7 @@
 module DataTypes
 
 using DataStructures
-import Base.convert, Base.show, Base.showerror, Base.log, Base.log10, Base.exp, Base.isless
+import Base.convert, Base.show, Base.showerror, Base.log, Base.log10, Base.exp, Base.isless, Base.ifelse, Base.sqrt
 
 export convert, Parameter, Forcing, Equation
 export Species, Compartment, Reactant, Component
@@ -31,7 +31,7 @@ end
 # Unit error (when we try to add or substract different units)
 type UnitError <: Exception
 end
-showerror(io::IO, e::UnitError) = print(io, "An attempt was made to add or substract variables with different dimensions.");
+showerror(io::IO, e::UnitError) = print(io, "There was an error with the units");
 
 
 # Algebra with dimensions
@@ -59,11 +59,17 @@ function exp(d::Dimension)
 end
 log(d::Dimension) = exp(d::Dimension)
 log10(d::Dimension) = exp(d::Dimension)
+sqrt(d::Dimension) = d^(1//2)
 isless(d1::Dimension, d2::Dimension) = d1 != d2 && (throw(UnitError()))
-+(d::Dimension, s::Number) = d != none.d && (throw(UnitError()))
++(d::Dimension, s::Number) = d != none.d ? (throw(UnitError())) : d
 +(s::Number, d::Dimension) = d + s
--(d::Dimension, s::Number) = d != none.d && (throw(UnitError()))
+-(d::Dimension, s::Number) = d != none.d ? (throw(UnitError())) : d
 -(s::Number, d::Dimension) = d - s
+^(d1::Dimension, d2::Dimension) = d2 != none.d ? (throw(UnitError())) : d1
+isless(d1::Dimension, s::Number) = d1 != none.d ? (throw(UnitError())) : d1
+isless(s::Number, d1::Dimension) = isless(d1, s)
+ifelse(d1::Dimension, d2::Dimension, s::Number) = d1 != d2 ? (throw(UnitError())) : d1
+-(d::Dimension) = d
 
 # Algebra with units
 *(u1::Unit, u2::Unit) = Unit(u1.d * u2.d, u1.f*u2.f)
