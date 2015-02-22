@@ -265,7 +265,6 @@ type OdeModel
     Forcings::OrderedDict{String, Any}
     Observed::Array{String, 1}
     Model::Function
-    Jacobian::Function
 end
 
 
