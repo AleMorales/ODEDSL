@@ -1,7 +1,7 @@
 module DataTypes
 
 using DataStructures
-import Base.convert, Base.show, Base.showerror
+import Base.convert, Base.show, Base.showerror, Base.log, Base.log10, Base.exp, Base.isless
 
 export convert, Parameter, Forcing, Equation
 export Species, Compartment, Reactant, Component
@@ -47,10 +47,23 @@ showerror(io::IO, e::UnitError) = print(io, "An attempt was made to add or subst
   Dimension(u1.K*s, u1.s*s, u1.m*s, u1.g*s, u1.cd*s, u1.mol*s, u1.A*s)
 ^(u1::Dimension, s::Rational) =
   Dimension(u1.K*s, u1.s*s, u1.m*s, u1.g*s, u1.cd*s, u1.mol*s, u1.A*s)
+^(u1::Dimension, s::Float64) =
+  Dimension(u1.K*s, u1.s*s, u1.m*s, u1.g*s, u1.cd*s, u1.mol*s, u1.A*s)
 *(u1::Dimension, s::Number) = u1
 *(s::Number, u1::Dimension) = u1
 /(u1::Dimension, s::Number) = u1
 /(s::Number, u1::Dimension) = u1^(-s)
+function exp(d::Dimension)
+  d != none.d && (throw(UnitError()))
+  none.d
+end
+log(d::Dimension) = exp(d::Dimension)
+log10(d::Dimension) = exp(d::Dimension)
+isless(d1::Dimension, d2::Dimension) = d1 != d2 && (throw(UnitError()))
++(d::Dimension, s::Number) = d != none.d && (throw(UnitError()))
++(s::Number, d::Dimension) = d + s
+-(d::Dimension, s::Number) = d != none.d && (throw(UnitError()))
+-(s::Number, d::Dimension) = d - s
 
 # Algebra with units
 *(u1::Unit, u2::Unit) = Unit(u1.d * u2.d, u1.f*u2.f)
