@@ -278,6 +278,7 @@ function parse_parameter(s::ASCIIString)
       unit *= i
     end
   end
+  !isa(value, Number) && error("Error in parameter $name: You must supply a value")
   return name, Parameter(value, Unit(unit))
 end
 
@@ -450,7 +451,7 @@ function parse_component(s::ASCIIString)
     # The tokens between second and the keyword "of" should be an array of forms
     elseif c == 3
       forms *= i
-      i == "]" && (c = 4)
+      ismatch(r"\]" ,i) && (c = 4)
     # The token after the array of forms should be the keyword "of"
     elseif c == 4
       i != "of" ? 
