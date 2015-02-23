@@ -165,15 +165,15 @@ function component_form_combinations(components_by_species::Dict{String, Dict{St
       push!(names_forms, val2.Forms)
     end
     # Generate matrix with all possible combinations of form-components in the species
-    combination = convert(DataFrame, Array(String, (number_of_combinations[key1], length(val1))))
-    names!(combination, convert(Array{ASCIIString, 1}, collect(keys(val1))))
+    combination = fill("", (number_of_combinations[key1], length(val1)))
+    combination_names = collect(keys(val1))
     small = names_forms[1]
     combination[:,1] = repeat(small; outer = [int(number_of_combinations[key1]/length(small))])
     for i in 2:length(names_forms)
         small = repeat(names_forms[i]; inner = [length(small)])
         combination[:,i] = repeat(small; outer = [int(number_of_combinations[key1]/length(small))])
     end
-    combinations_per_species[key1] = combination
+    combinations_per_species[key1] = (combination, combination_names)
   end
   return combinations_per_species
 end
@@ -187,16 +187,16 @@ function generate_species_from_components(model, components_by_species, combinat
     # Get the units and compartment from the species (this species will actually be deleted)
     units = model.Species[key1].Units # Units in Species and Components are actually redundant
     compartment =  model.Species[key1].Compartment
-    names_components = collect(keys(combinations_per_species[key1].dicts[2]))
+    names_components = combinations_per_species[key1][2]
     # Iterate over the rows of the matrix containing all possible combinations
-    for i in 1:size(combinations_per_species[key1])[1]
+    for i in 1:size(combinations_per_species[key1][1])[1]
       # Construct the names of the species using "_" to append the different component-forms
-        name_species = key1*"_"*names_components[1]*combinations_per_species[key1][i,1]
-        location_form = findin(model.Components[names_components[1]].Forms, [combinations_per_species[key1][i,1]])
+        name_species = key1*"_"*names_components[1]*combinations_per_species[key1][1][i,1]
+        location_form = findin(model.Components[names_components[1]].Forms, [combinations_per_species[key1][1][i,1]])
         value = model.Components[names_components[1]].Values[location_form]
-      for j in 2:size(combinations_per_species[key1])[2]
-        name_species *= "_"*names_components[j]*combinations_per_species[key1][i,j]
-        location_form = findin(model.Components[names_components[j]].Forms, [combinations_per_species[key1][i,j]])
+      for j in 2:size(combinations_per_species[key1][1])[2]
+        name_species *= "_"*names_components[j]*combinations_per_species[key1][1][i,j]
+        location_form = findin(model.Components[names_components[j]].Forms, [combinations_per_species[key1][1][i,j]])
         value .*= model.Components[names_components[j]].Values[location_form]
       end
       value .*= value[1]*model.Species[key1].Value
@@ -212,34 +212,38 @@ function expand_master_equation_rules(model, components_by_species, combinations
   # Iterate for each species
   for (key1,val1) in model.MEReactions
     # Identify the rows in the combinations_per_species that correspond to the "from" elements in the master equation reaction
-    from_rows = findin(combinations_per_species[val1.Species][:,convert(ASCIIString,val1.Component[1])], [val1.From[1]])
+    which_col = findin(combinations_per_species[val1.Species][2], [val1.Component[1]])
+    from_rows = findin(combinations_per_species[val1.Species][1][:,which_col], [val1.From[1]])
     for i in 2:length(val1.Component)
-      from_rows = intersect(from_rows, findin(combinations_per_species[val1.Species][:,convert(ASCIIString,val1.Component[i])], [val1.From[i]]))
+      which_col = findin(combinations_per_species[val1.Species][2], [val1.Component[i]])
+      from_rows = intersect(from_rows, findin(combinations_per_species[val1.Species][1][:,which_col], [val1.From[i]]))
     end
-    to_rows = findin(combinations_per_species[val1.Species][:,convert(ASCIIString, val1.Component[1])], [val1.To[1]])
+    which_col = findin(combinations_per_species[val1.Species][2], [val1.Component[1]])
+    to_rows = findin(combinations_per_species[val1.Species][1][:,which_col], [val1.To[1]])
     for i in 2:length(val1.Component)
-      to_rows = intersect(to_rows, findin(combinations_per_species[val1.Species][:,convert(ASCIIString,val1.Component[i])], [val1.To[i]]))
+      which_col = findin(combinations_per_species[val1.Species][2], [val1.Component[i]])
+      to_rows = intersect(to_rows, findin(combinations_per_species[val1.Species][1][:,which_col], [val1.To[i]]))
     end
     # All possible combinations
     combinations_from_to = collect(product(from_rows, to_rows))
     # Only those combinations where the unspecified components are equal can be matched.
     good_match = {} 
     for i = 1:length(combinations_from_to)
-        select_columns = intersect(names(combinations_per_species[val1.Species]), [symbol("$i") for i in val1.Component])
-        other_comps_from = combinations_per_species[val1.Species][combinations_from_to[i][1],select_columns]
-        other_comps_to = combinations_per_species[val1.Species][combinations_from_to[i][2],select_columns]
+        select_columns = findin(combinations_per_species[val1.Species][2], setdiff(combinations_per_species[val1.Species][2], val1.Component))
+        other_comps_from = combinations_per_species[val1.Species][1][combinations_from_to[i][1],select_columns]
+        other_comps_to = combinations_per_species[val1.Species][1][combinations_from_to[i][2],select_columns]
         if other_comps_from == other_comps_to
             push!(good_match, combinations_from_to[i])
         end
     end      
-    # For every combination, generate a Reaction where the species are create using the same notation as for the "generate_species_from_components" function
-    names_components = collect(keys(combinations_per_species[val1.Species].dicts[2]))
+    # For every combination, generate a Reaction where the species are created using the same notation as for the "generate_species_from_components" function
+    names_components = combinations_per_species[val1.Species][2]
     for i in 1:size(good_match)[1]
-      name_substrate = val1.Species*"_"*names_components[1]*combinations_per_species[val1.Species][good_match[i][1],1]
-      name_product = val1.Species*"_"*names_components[1]*combinations_per_species[val1.Species][good_match[i][2],1]
-      for j in 2:size(combinations_per_species[val1.Species])[2]
-        name_substrate *= "_"*names_components[j]*combinations_per_species[val1.Species][good_match[i][1],j]
-        name_product *= "_"*names_components[j]*combinations_per_species[val1.Species][good_match[i][2],j]
+      name_substrate = val1.Species*"_"*names_components[1]*combinations_per_species[val1.Species][1][good_match[i][1],1]
+      name_product = val1.Species*"_"*names_components[1]*combinations_per_species[val1.Species][1][good_match[i][2],1]
+      for j in 2:size(combinations_per_species[val1.Species][1])[2]
+        name_substrate *= "_"*names_components[j]*combinations_per_species[val1.Species][1][good_match[i][1],j]
+        name_product *= "_"*names_components[j]*combinations_per_species[val1.Species][1][good_match[i][2],j]
       end
       # The reaction is named as v_namesubstrate_nameproduct
       # Note that I assume first order kinetics (expr cannot be edited directly)
@@ -263,11 +267,12 @@ function convert_master_equation_equations(model, components_by_species, combina
   return equations
 end
 
+
 function expand_master_equation_expression(expr, combinations_per_species)
   # Extract all species, components and forms
   species = matchall(r"[a-zA-Z0-9_\s]+(?=\[\[)", string(expr))
   species = [strip(x) for x in species]
-  component_forms = matchall(r"\[\s*\[\s*[a-zA-Z0-9_\s\]\[]*\s*\]\s*\]",string(expr))
+  component_forms = matchall(r"\[\s*\[\s*[a-zA-Z0-9_\s\]\[\*]*\s*\]\s*\]",string(expr))
   # An ragged array of arrays. Each subarrays contains the forms associated to each species mentioned
   forms = [matchall(r"\[[a-zA-Z0-9_\s]+\]", x) for x in component_forms]
   cleaned_forms = {}
@@ -289,11 +294,16 @@ function expand_master_equation_expression(expr, combinations_per_species)
   # for each species included in the expression, identify all rows in the combinations matrix (same as in expand_master_equation_rules)
   substituted_expression = string(expr)
   for i in 1:length(species)
-    rows = findin(combinations_per_species[species[i]][:,convert(ASCIIString,components[i][1])], [cleaned_forms[i][1]])
+    # Find column that corresponds to species and component
+    which_col = findin(combinations_per_species[species[i]][2], [components[i][1]])
+    # From the column, find the row that corresponds to the form
+    rows = findin(combinations_per_species[species[i]][1][:,which_col], [cleaned_forms[i][1]])
+    # Repeat for all components until we have the combination of forms
     for j in 2:length(cleaned_forms[i])
-      rows = intersect(rows, findin(combinations_per_species[species[i]][:,convert(ASCIIString,components[i][j])], [cleaned_forms[i][j]]))
+      which_col = findin(combinations_per_species[species[i]][2], [components[i][j]])
+      rows = intersect(rows, findin(combinations_per_species[species[i]][1][:,which_col], [cleaned_forms[i][j]]))
     end
-    names_components = collect(keys(combinations_per_species[species[i]].dicts[2]))
+    names_components = combinations_per_species[species[i]][2]
     expanded_name = "("
     for j in 1:size(rows)[1]
       if j == 1
@@ -301,13 +311,14 @@ function expand_master_equation_expression(expr, combinations_per_species)
       else 
         expanded_name *= " + "*species[i]
       end
-      for h in 1:size(combinations_per_species[species[i]])[2]
-        expanded_name *= "_"*names_components[h]*combinations_per_species[species[i]][rows[j],h]
+      for h in 1:size(combinations_per_species[species[i]][1])[2]
+        expanded_name *= "_"*names_components[h]*combinations_per_species[species[i]][1][rows[j],h]
       end
     end
     expanded_name *= ")"
     substituted_expression = replace(substituted_expression, species[i]*component_forms[i], expanded_name)
   end
+
   return substituted_expression
 end
 
@@ -586,7 +597,8 @@ function check_lhs_rhs(model)
     all_rhs, rhs_to_lhs, lhs_to_rhs = get_rhs(model.Equations)
     new_model = deepcopy(model)
     for i in all_rhs
-        i ∉ [lhs_states, lhs_parameters, lhs_forcings, lhs_constants, lhs_equations] ? error("The input $i is missing from the model") : nothing
+        i ∉ [lhs_states, lhs_parameters, lhs_forcings, lhs_constants, lhs_equations] && 
+          error("The input $i is missing from the model")
     end
     for i in lhs_parameters
         if i ∉ all_rhs 
@@ -624,7 +636,7 @@ function check_derivatives(model)
     lhs = collect(keys(model.Equations))
     for i in names_derivatives
         if i ∉ lhs
-            error("The time derivative $i is not presented in the model.") 
+            error("The time derivative $i is not present in the model.") 
         end
         new_model.Equations[i].Exported = true
     end
