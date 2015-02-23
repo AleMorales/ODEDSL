@@ -2,15 +2,15 @@ function calculate_units(exp::Expr, units::Dict{Symbol, Dimension}, c::Int64)
   ex = deepcopy(exp)
   for i in 1:length(ex.args)
     if isa(ex.args[i], Expr) 
-      ex.args[i] = calculate_units(ex.args[i], units, c)
+      ex.args[i], c = calculate_units(ex.args[i], units, c)
     elseif isa(ex.args[i], Symbol) && haskey(units, symbol(ex.args[i]))
       c += 1
       name = parse("__unit__$(c)")
-      @eval global $name = $(units[ex.args[i]])
+      @eval global $name = ($(units[ex.args[i]]))
       ex.args[i] = name
     end
   end
-  eval(ex)
+  ex, c
 end
 
 function check_units(sorted_model::OdeSorted)
@@ -28,14 +28,14 @@ function check_units(sorted_model::OdeSorted)
       if isa(val.Expr, Symbol)
             infered = eval(given_units[val.Expr])
       else
-        infered_expr = calculate_units(val.Expr, given_units, 0)
+        infered_expr, c = calculate_units(val.Expr, given_units, 0)
         infered = try eval(infered_expr) catch 
             error("Error when calculating units: The rhs of equation $key is not dimensionally homogeneous.
-The right hand side expression was $(val.Expr)") end
+The right hand side expression was $(val.Expr) with units $given_units") end
       end
       expected != infered && error("Error when calculating units: Expected and given units for $key did not coincide.
 I infered the units $infered but you assign it $expected. 
-The right hand side expression was $(val.Expr)")
+The right hand side expression was $(val.Expr) with units $given_units")
     end
   end 
 end
