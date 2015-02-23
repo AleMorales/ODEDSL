@@ -70,6 +70,7 @@ isless(d1::Dimension, s::Number) = d1 != none.d ? (throw(UnitError())) : d1
 isless(s::Number, d1::Dimension) = isless(d1, s)
 ifelse(d1::Dimension, d2::Dimension, s::Number) = d1 != d2 ? (throw(UnitError())) : d1
 -(d::Dimension) = d
+^(d1::Number, d2::Dimension) = d2 != none.d ? (throw(UnitError())) : none.d
 
 # Algebra with units
 *(u1::Unit, u2::Unit) = Unit(u1.d * u2.d, u1.f*u2.f)
@@ -85,26 +86,26 @@ ifelse(d1::Dimension, d2::Dimension, s::Number) = d1 != d2 ? (throw(UnitError())
 
 # Show pretty representation (still need to improve more...)
 function show(io::IO, u::Unit)
-  unit = u.d.mol != 0 ? ( u.d.mol - 1 < eps(1.0) ? "*mol" : ( u.d.mol < 0 ? "/mol^$(-float(u.d.mol))" : "*mol^$(float(u.d.mol))") ) : ""
-  unit *= u.d.g != 0 ? ( u.d.g == 1 ? "*g" : ( u.d.g < 0 ? "/g^$(-float(u.d.g))" : "*g^$(float(u.d.g))") ) : ""
-  unit *= u.d.m != 0 ? ( u.d.m == 1 ? "*m" : ( u.d.m < 0 ? "/m^$(-float(u.d.m))" : "*m^$(float(u.d.m))") ) : ""
-  unit *= u.d.s != 0 ? ( u.d.s == 1 ? "*s" : ( u.d.s < 0 ? "/s^$(-float(u.d.s))" : "*s^$(float(u.d.s))") ) : ""
-  unit *= u.d.K != 0 ? ( u.d.K == 1 ? "*K" : ( u.d.K < 0 ? "/K^$(-float(u.d.K))" : "*K^$(float(u.d.K))") ) : ""
-  unit *= u.d.cd != 0 ? ( u.d.cd == 1 ? "*cd" : ( u.d.cd < 0 ? "/cd^$(-float(u.d.cd))" : "*cd^$(float(u.d.cd))") ) : ""
-  unit *= u.d.A != 0 ? ( u.d.A == 1 ? "*A" : ( u.d.A < 0 ? "/A^$(-float(u.d.A))" : "*A^$(float(u.d.A))") ) : ""
+  unit = u.d.mol != 0 ? ( u.d.mol - 1 < eps(1.0) ? "*mol" : ( u.d.mol < 0 ? "*1/mol^$(-float(u.d.mol))" : "*mol^$(float(u.d.mol))") ) : ""
+  unit *= u.d.g != 0 ? ( u.d.g == 1 ? "*g" : ( u.d.g < 0 ? "*1/g^$(-float(u.d.g))" : "*g^$(float(u.d.g))") ) : ""
+  unit *= u.d.m != 0 ? ( u.d.m == 1 ? "*m" : ( u.d.m < 0 ? "*1/m^$(-float(u.d.m))" : "*m^$(float(u.d.m))") ) : ""
+  unit *= u.d.s != 0 ? ( u.d.s == 1 ? "*s" : ( u.d.s < 0 ? "*1/s^$(-float(u.d.s))" : "*s^$(float(u.d.s))") ) : ""
+  unit *= u.d.K != 0 ? ( u.d.K == 1 ? "*K" : ( u.d.K < 0 ? "*1/K^$(-float(u.d.K))" : "*K^$(float(u.d.K))") ) : ""
+  unit *= u.d.cd != 0 ? ( u.d.cd == 1 ? "*cd" : ( u.d.cd < 0 ? "*1/cd^$(-float(u.d.cd))" : "*cd^$(float(u.d.cd))") ) : ""
+  unit *= u.d.A != 0 ? ( u.d.A == 1 ? "*A" : ( u.d.A < 0 ? "*1/A^$(-float(u.d.A))" : "*A^$(float(u.d.A))") ) : ""
   # Remove trailing "* "
   unit = unit[2:end]
   print(io, "$(float(u.f)) $unit")
 end
 
 function show(io::IO, d::Dimension)
-  unit = d.mol != 0 ? ( d.mol == 1 ? "*mol" : ( d.mol < 0 ? "/mol^$(-float(d.mol))" : "*mol^$(float(d.mol))") ) : ""
-  unit *= d.g != 0 ? ( d.g == 1 ? "*g" : ( d.g < 0 ? "/g^$(-float(d.g))" : "*g^$(float(d.g))") ) : ""
-  unit *= d.m != 0 ? ( d.m == 1 ? "*m" : ( d.m < 0 ? "/m^$(-float(d.m))" : "*m^$(float(d.m))") ) : ""
-  unit *= d.s != 0 ? ( d.s == 1 ? "*s" : ( d.s < 0 ? "/s^$(-float(d.s))" : "*s^$(float(d.s))") ) : ""
-  unit *= d.K != 0 ? ( d.K == 1 ? "*K" : ( d.K < 0 ? "/K^$(-float(d.K))" : "*K^$(float(d.K))") ) : ""
-  unit *= d.cd != 0 ? ( d.cd == 1 ? "*cd" : ( d.cd < 0 ? "/cd^$(-float(d.cd))" : "*cd^$(float(d.cd))") ) : ""
-  unit *= d.A != 0 ? ( d.A == 1 ? "*A" : ( d.A < 0 ? "/A^$(-float(d.A))" : "*A^$(float(d.A))") ) : ""
+  unit = d.mol != 0 ? ( d.mol == 1 ? "*mol" : ( d.mol < 0 ? "*1/mol^$(-float(d.mol))" : "*mol^$(float(d.mol))") ) : ""
+  unit *= d.g != 0 ? ( d.g == 1 ? "*g" : ( d.g < 0 ? "*1/g^$(-float(d.g))" : "*g^$(float(d.g))") ) : ""
+  unit *= d.m != 0 ? ( d.m == 1 ? "*m" : ( d.m < 0 ? "*1/m^$(-float(d.m))" : "*m^$(float(d.m))") ) : ""
+  unit *= d.s != 0 ? ( d.s == 1 ? "*s" : ( d.s < 0 ? "*1/s^$(-float(d.s))" : "*s^$(float(d.s))") ) : ""
+  unit *= d.K != 0 ? ( d.K == 1 ? "*K" : ( d.K < 0 ? "*1/K^$(-float(d.K))" : "*K^$(float(d.K))") ) : ""
+  unit *= d.cd != 0 ? ( d.cd == 1 ? "*cd" : ( d.cd < 0 ? "*1/cd^$(-float(d.cd))" : "*cd^$(float(d.cd))") ) : ""
+  unit *= d.A != 0 ? ( d.A == 1 ? "*A" : ( d.A < 0 ? "*1/A^$(-float(d.A))" : "*A^$(float(d.A))") ) : ""
   # Remove trailing "* "
   unit = unit[2:end]
   print(io, "$unit")
