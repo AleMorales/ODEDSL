@@ -20,9 +20,8 @@ strip_comments(source::String) = replace(source, r"\#.*\n"," ")
 # store_logical_lines function to work
 const start_keywords = ["export_equation","export_reaction","variable_compartment",
                         "export_meequation","export_mereaction","constant_compartment",
-                        "mereaction", "reaction", "equation", "state", "species",
-                        "component", "parameter", "constant", "forcing", 
-                        "meequation"]
+                        "mereaction", "reaction",  "meequation", "equation", "state", "species",
+                        "component", "parameter", "constant", "forcing"]
 
 # Tokenize the string by whitespace, tab or newline
 tokenize(source::String) = split(source, r"\s|\n|\t")
@@ -566,7 +565,6 @@ function process_file(file::ASCIIString)
       name, object = parse_equation(i, true)
       docs["export_meequation"][name] = object
     end       
-
     # Merge exported and non-exported equations and reactions
     merge!(docs["equation"], docs["export_equation"])
     merge!(docs["reaction"], docs["export_reaction"])
