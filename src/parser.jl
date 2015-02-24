@@ -92,7 +92,7 @@ function parse_equation(s::ASCIIString, exported)
     end
   end
   # Make sure that we have a valid mathematical expression. If not, just raise an error
-  eq = try Equation(parse(expr), exported, Dimension(Unit(unit))) catch 
+  eq = try Equation(parse(expr), exported, Unit(unit)) catch
       error("Error in equation $name: I don't understand the equation.") end
   return name, eq
 end
@@ -121,8 +121,8 @@ function parse_reaction(s::ASCIIString, exported)
       c = 3
     # The third token should be the in keyword
     elseif c == 3
-      i != "in" ? 
-          error("Error in reaction $name: I was expecting the \"in\" keyword to specify the compartment.") : 
+      i != "in" ?
+          error("Error in reaction $name: I was expecting the \"in\" keyword to specify the compartment.") :
           (c = 4)
     # The fourth token should be the compartment
     elseif c == 4
@@ -130,8 +130,8 @@ function parse_reaction(s::ASCIIString, exported)
       c = 5
     # The 5th token should be the = sign
     elseif c == 5
-      i != "=" ? 
-          error("Error in reaction $name: I was expecting an equal = sign.") : 
+      i != "=" ?
+          error("Error in reaction $name: I was expecting an equal = sign.") :
           (c = 6)
     # The 6th and posterior tokens until "for" should be the expression
     elseif (c == 6) & (i != "for")
@@ -141,8 +141,8 @@ function parse_reaction(s::ASCIIString, exported)
       c = 7
     # All tokens between "for" and "->" indicate substrates
     elseif (c == 7) & (i != "->") & (i != "+")
-      try 
-        isa(parse(i), Number) ? 
+      try
+        isa(parse(i), Number) ?
               push!(stoich_substrate, parse(i)) :
               push!(substrates, i)
       catch
@@ -154,7 +154,7 @@ function parse_reaction(s::ASCIIString, exported)
     # All tokens after "->" represent products until the "in" keyword
     elseif (c == 8) & (i != "in") & (i != "+")
       try
-        isa(parse(i), Number) ? 
+        isa(parse(i), Number) ?
               push!(stoich_product, parse(i)) :
               push!(products, i)
       catch
@@ -167,22 +167,22 @@ function parse_reaction(s::ASCIIString, exported)
     end
   end
   # Try to catch situations where the stoichiometry was not given or when the was a parsing error...
-  (c == 6) && 
+  (c == 6) &&
           error("Error in reaction $name: I am missing the stoichiometry of the reaction.")
-  (c == 7) && 
+  (c == 7) &&
           error("Error in reaction $name: I could not parse the stoichiometry correctly.")
   # Make sure that we have a valid mathematical expression. If not raise an error
-  rhs = try parse(expr) catch 
+  rhs = try parse(expr) catch
             error("Error in reaction $name: I don't understand the equation...") end
   # Create the arrays of substrates and products (first make sure that all coefficients are provided)
   length(stoich_substrate) != length(substrates) &&
       error("Error in reaction $name: I could not parse the substrates correctly.")
   length(stoich_product) != length(products) &&
       error("Error in reaction $name: I could not parse the products correctly.")
-  Substrates = [Reactant(substrates[i], stoich_substrate[i]) for i = 1:length(substrates)] 
+  Substrates = [Reactant(substrates[i], stoich_substrate[i]) for i = 1:length(substrates)]
   Products = [Reactant(products[i], stoich_product[i]) for i = 1:length(products)]
   # Construct the Reaction object and return it
-  return name, Reaction(Substrates, Products, rhs, compartment, exported, Dimension(Unit(unit)))
+  return name, Reaction(Substrates, Products, rhs, compartment, exported, Unit(unit))
 end
 
 ## Parse mereaction
@@ -224,7 +224,7 @@ function parse_mereaction(s::ASCIIString)
       product *= i
     elseif (c == 6) & (i == "in")
       c = 7
-    elseif (c == 7)  
+    elseif (c == 7)
       unit *= i
     end
   end
@@ -234,7 +234,7 @@ function parse_mereaction(s::ASCIIString)
   species2, components2, to = interpret_master_equation(product)
   species1 != species2 && error("Error in mereaction $name: The species on each side of the transition rule are not the same.")
   components1 != components2 && error("Error in mereaction $name: The components on each side of the transition rule are not the same or they are not in the same order.")
-  return name, MEReaction(species1, components1, from, to, parse(expr), Dimension(Unit(unit)))
+  return name, MEReaction(species1, components1, from, to, parse(expr), Unit(unit))
 end
 
 # Parse the components and forms of a transition rule or mevariable
@@ -379,7 +379,7 @@ function parse_forcing(s::ASCIIString)
       unit *= i
     end
   end
-  c == 4 && error("Error in forcing $name: I could not parse the times correctly.") 
+  c == 4 && error("Error in forcing $name: I could not parse the times correctly.")
   values_vec = eval(parse(values))
   times_vec = eval(parse(times))
   return name, Forcing(times_vec, values_vec, Unit(unit))
@@ -405,8 +405,8 @@ function parse_species(s::ASCIIString)
       c = 3
     # The third token should be the in keyword
     elseif c == 3
-      i != "in" ? 
-          error("Error in species $name: I was expecting the \"in\" keyword to specify the compartment.") : 
+      i != "in" ?
+          error("Error in species $name: I was expecting the \"in\" keyword to specify the compartment.") :
           (c = 4)
     # The fourth token should be the compartment
     elseif c == 4
@@ -414,8 +414,8 @@ function parse_species(s::ASCIIString)
       c = 5
     # The 5th token should be the = sign
     elseif c == 5
-      i != "=" ? 
-          error("Error in species $name: I was expecting an equal = sign.") : 
+      i != "=" ?
+          error("Error in species $name: I was expecting an equal = sign.") :
           (c = 6)
     # The sixth token should be the value
     elseif (c == 6) & (i != "in")
@@ -453,8 +453,8 @@ function parse_component(s::ASCIIString)
       ismatch(r"\]" ,i) && (c = 4)
     # The token after the array of forms should be the keyword "of"
     elseif c == 4
-      i != "of" ? 
-          error("Error in component $name: I was expecting the \"of\" keyword to specify the species.") : 
+      i != "of" ?
+          error("Error in component $name: I was expecting the \"of\" keyword to specify the species.") :
           (c = 5)
     # After than we get the species
     elseif c == 5
@@ -462,8 +462,8 @@ function parse_component(s::ASCIIString)
       c = 6
     # Then an = sign
     elseif c == 6
-      i != "=" ? 
-          error("Error in component $name: I was expecting an equal = sign.") : 
+      i != "=" ?
+          error("Error in component $name: I was expecting an equal = sign.") :
           (c = 7)
     # The remaining tokens are the values
     elseif (c == 7)
@@ -495,7 +495,7 @@ function process_file(file::ASCIIString)
             "mereaction" => Dict{String, MEReaction}(),
             "export_reaction" => Dict{String, Reaction}(),
             "export_equation" => Dict{String, Equation}(),
-            "variable_compartment" => Dict{String, Compartment}()} 
+            "variable_compartment" => Dict{String, Compartment}()}
 
     # Read the file and parse it into logical lines
     source_file = read_file(file);
@@ -536,7 +536,7 @@ function process_file(file::ASCIIString)
     for i = source_lines["parameter"]
       name, object = parse_parameter(i)
       docs["parameter"][name] = object
-    end    
+    end
     for i = source_lines["state"]
       name, object = parse_parameter(i)
       docs["state"][name] = object
@@ -564,7 +564,7 @@ function process_file(file::ASCIIString)
     for i = source_lines["export_meequation"]
       name, object = parse_equation(i, true)
       docs["export_meequation"][name] = object
-    end       
+    end
     # Merge exported and non-exported equations and reactions
     merge!(docs["equation"], docs["export_equation"])
     merge!(docs["reaction"], docs["export_reaction"])
@@ -575,6 +575,6 @@ function process_file(file::ASCIIString)
 
   return MESource(docs["constant"], docs["parameter"], docs["forcing"], docs["state"],
                    docs["species"], docs["component"], docs["compartment"], docs["equation"],
-                   docs["reaction"], docs["mereaction"], docs["meequation"])        
+                   docs["reaction"], docs["mereaction"], docs["meequation"])
 
 end
