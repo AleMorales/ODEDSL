@@ -17,9 +17,9 @@ immutable Dimension
   K::Rational{Int64}
   s::Rational{Int64}
   m::Rational{Int64}
-  g::Rational{Int64} 
-  cd::Rational{Int64} 
-  mol::Rational{Int64} 
+  g::Rational{Int64}
+  cd::Rational{Int64}
+  mol::Rational{Int64}
   A::Rational{Int64}
 end
 
@@ -36,10 +36,10 @@ showerror(io::IO, e::UnitError) = print(io, "There was an error with the units")
 
 # Algebra with dimensions
 *(u1::Dimension, u2::Dimension) =
-  Dimension(u1.K + u2.K, u1.s + u2.s, u1.m + u2.m, 
+  Dimension(u1.K + u2.K, u1.s + u2.s, u1.m + u2.m,
             u1.g + u2.g, u1.cd + u2.cd, u1.mol + u2.mol, u1.A + u2.A)
 /(u1::Dimension, u2::Dimension) =
-  Dimension(u1.K - u2.K, u1.s - u2.s, u1.m - u2.m, 
+  Dimension(u1.K - u2.K, u1.s - u2.s, u1.m - u2.m,
             u1.g - u2.g, u1.cd - u2.cd, u1.mol - u2.mol, u1.A - u2.A)
 +(u1::Dimension, u2::Dimension) = u1 == u2 ? u1 : throw(UnitError())
 -(u1::Dimension, u2::Dimension) = u1 == u2 ? u1 : throw(UnitError())
@@ -76,7 +76,7 @@ ifelse(d1::Dimension, d2::Dimension, s::Number) = d1 != d2 ? (throw(UnitError())
 *(u1::Unit, u2::Unit) = Unit(u1.d * u2.d, u1.f*u2.f)
 /(u1::Unit, u2::Unit) = Unit(u1.d / u2.d, u1.f/u2.f)
 +(u1::Unit, u2::Unit) = u1.d == u2.d ? u1 : throw(UnitError())
--(u1::Unit, u2::Unit) = u1.d == u2.d ? u1 : throw(UnitError()) 
+-(u1::Unit, u2::Unit) = u1.d == u2.d ? u1 : throw(UnitError())
 ^(u1::Unit, s::Integer) = Unit(u1.d^s, u1.f^s)
 ^(u1::Unit, s::Rational) = Unit(u1.d^s, u1.f^s)
 *(u1::Unit, s::Number) = Unit(u1.d, u1.f*s)
@@ -113,14 +113,14 @@ end
 
 
 # Prefixes
-const prefixes = {"" => 1//1, 
+const prefixes = {"" => 1//1,
                   "E" => int(1e18)//1, "P" => int(1e15)//1,
                   "T" => int(1e12)//1, "G" => int(1e9)//1, "M" => int(1e6), "k" => int(1e3),
                   "h" => int(1e2)//1, "da" => int(1e1)//1, "d" => 1//int(1e1), "c" => 1//int(1e2),
                   "m" => 1//int(1e3), "u" => 1//int(1e6), "n" => 1//int(1e9), "p" => 1//int(1e12),
                   "f" => 1//int(1e15), "a" => 1//int(1e18)}
 
-# SI units                  
+# SI units
 const SI_units = {"K" => Unit(Dimension(1//1,0,0,0,0,0,0),1//1),
                   "s" => Unit(Dimension(0,1//1,0,0,0,0,0),1//1),
                   "m" => Unit(Dimension(0, 0, 1//1, 0, 0, 0, 0), 1//1),
@@ -174,7 +174,7 @@ Dimension(u::Unit) = Dimension(u.d.K, u.d.s, u.d.m, u.d.g, u.d.cd, u.d.mol, u.d.
 function convert{T <: Any}(::Type{OrderedDict{String, T}}, x::Dict{String, T})
     out =  OrderedDict{String, T}()
     for (key,val) in x
-        out[key] = val 
+        out[key] = val
     end
 end
 
@@ -191,7 +191,7 @@ type Parameter
     Value::Float64
     Units::Unit
 end
-type Forcing   
+type Forcing
     Time::Array{Float64, 1}
     Value::Array{Float64, 1}
     Units::Unit
@@ -200,7 +200,7 @@ type Equation
     Expr::Union(Expr, Symbol, Number)
     Exported::Bool
     Dim::Dimension
-end 
+end
 type Species
     Value::Float64
     Compartment::String
@@ -240,7 +240,7 @@ end
 # Container for the structured description of the simulation language
 abstract Source
 type MESource <: Source
-    Constants::Dict{String, Parameter}    
+    Constants::Dict{String, Parameter}
     Parameters::OrderedDict{String, Parameter}
     Forcings::OrderedDict{String, Forcing}
     States::OrderedDict{String, Parameter}
@@ -253,7 +253,7 @@ type MESource <: Source
     MEEquations::Dict{String, Equation}
 end
 type ReactionSource <: Source
-    Constants::Dict{String, Parameter}    
+    Constants::Dict{String, Parameter}
     Parameters::OrderedDict{String, Parameter}
     Forcings::OrderedDict{String, Forcing}
     States::OrderedDict{String, Parameter}
@@ -263,7 +263,7 @@ type ReactionSource <: Source
     Reactions::Dict{String, Reaction}
 end
 type OdeSource <: Source
-    Constants::Dict{String, Parameter}    
+    Constants::Dict{String, Parameter}
     Parameters::OrderedDict{String, Parameter}
     Forcings::OrderedDict{String, Forcing}
     States::OrderedDict{String, Parameter}
@@ -278,13 +278,14 @@ type OdeSorted
     SortedEquations::Array{Dict{String, Equation}, 1}
 end
 
-# Container that contains the generated code in Julia. 
+# Container that contains the generated code in Julia.
 type OdeModel
     States::OrderedDict{String, Any}
     Parameters::OrderedDict{String, Any}
     Forcings::OrderedDict{String, Any}
     Observed::Array{String, 1}
     Model::Function
+    Jacobian::Function
 end
 
 
@@ -313,7 +314,7 @@ end
 
 
 function show(io::IO, model::OdeSource)
-  print(io, 
+  print(io,
 """
 Constants:
 ----------
@@ -335,7 +336,7 @@ end
 
 
 function show(io::IO, model::OdeSorted)
-  print(io, 
+  print(io,
 """
 Constants:
 ----------
@@ -361,10 +362,3 @@ show(io::IO, f::Forcing) = print(io,"$(f.Value*f.Units.f) $(f.Units.d) at $(f.Ti
 
 
 end
-
-
-
-
-
-
-
