@@ -345,6 +345,16 @@ function convert_reaction_model(model::ReactionSource)
                         new_model.States, new_model.Equations)
 end
 
+function convert_reaction_model(model::MESource)
+  memodel = convert_master_equation(model)
+  convert_reaction_model(memodel)
+end
+
+function generate_model(file::String)
+  parsed_file = process_file(file)
+  convert_reaction_model(parsed_file)
+end
+
 function species_to_states(species)
   # Convert species into states
   states = OrderedDict{String, Parameter}()
