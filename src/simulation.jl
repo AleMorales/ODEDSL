@@ -240,7 +240,7 @@ function simulate(model::OdeModel, times, settings)
     !haskey(settings, "maxerr") && (settings["maxerr"] = 12)
     !haskey(settings, "maxnonlin") && (settings["maxnonlin"] = 12)
     !haskey(settings, "maxconvfail") && (settings["maxconvfail"] = 12)
-    !haskey(settings, "jacobian") && (settings["jacobian"] = true)
+    !haskey(settings, "jacobian") && (settings["jacobian"] = false)
     forcs = [[i[2][1] i[2][2]] for i in model.Forcings]
     states = Float64[i[2] for i in model.States]
     parameters = Float64[i[2] for i in model.Parameters]
