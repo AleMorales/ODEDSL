@@ -46,25 +46,25 @@ end
 
 using Calculus
 
-function generate_jacobian_function(model::OdeSorted, name)
+function generate_jacobian_function_Julia(model::OdeSorted, name)
   jacobian_matrix = generate_jacobian_matrix(model)
   string_assignments = [string(x[2].Expr) for x in model.SortedEquations[1]]
   code = string_assignments[1]*"\n"
   for i = 2:length(string_assignments)
     code *= string_assignments[i]*"\n"
   end
-  code *="jacobian_matrix = zeros(Float64, ( $(size(jacobian_matrix)[1]) , $(size(jacobian_matrix)[1]) ))\n"
+#  code *="jacobian_matrix = zeros(Float64, ( $(size(jacobian_matrix)[1]) , $(size(jacobian_matrix)[1]) ))\n"
   for i = 1:size(jacobian_matrix)[1], j = 1:size(jacobian_matrix)[1]
     if isa(jacobian_matrix[i,j], Number) && eval(jacobian_matrix[i,j]) == 0
       continue
     else
-      code *= "jacobian_matrix[$i,$j] = $(jacobian_matrix[i,j])\n"
+      code *= "J[$i,$j] = $(jacobian_matrix[i,j])\n"
     end
   end
-  return_line = "return jacobian_matrix\n"
+  return_line = "return nothing\n"
   function_text = paste("\n",
   "@inbounds function jacobian_$name(time::Float64, states::Array{Float64,1},
-   params::Array{Float64,1}, forcs::Array{Float64,1})\n", code, return_line,"end")
+   params::Array{Float64,1}, forcs::Array{Float64,1}, J)\n", code, return_line,"end")
   return function_text
 end
 
@@ -85,7 +85,8 @@ function generate_jacobian_matrix(compressed_model::OdeSorted)
   return Jacobian
 end
 
-########## Generate Jacobian ###############
+########## Generate Extended System ###############
+
 # Calculate extended system
 function generate_extended_system(compressed_model::OdeSorted, name)
   sens_array = generate_sensitivity_array(compressed_model)
@@ -141,7 +142,7 @@ function create_return_line_julia(states, observed)
 end
 
 # Create the function in Julia on the Equations section of the model Dict
-function create_function_julia!(model::OdeSorted, observed, name)
+function create_function_julia(model::OdeSorted, observed, name)
   code = ""
   for level in 1:length(model.SortedEquations)
     for (lhs, rhs) in model.SortedEquations[level]
@@ -181,7 +182,7 @@ function generate_code_Julia!(ode_model::OdeSource,unit_analysis = false, name =
 
   # Created compressed model (only if Jacobian or Sensitivities are required!)
   compressed_model = compress_model(sorted_model)
-  jacobian_function = generate_jacobian_function(compressed_model, name)
+  jacobian_function = generate_jacobian_function_Julia(compressed_model, name)
   sensitivity_function = ""
   sensitivity_jacobian_function = ""
   if sensitivities
@@ -192,7 +193,7 @@ function generate_code_Julia!(ode_model::OdeSource,unit_analysis = false, name =
   unit_analysis && check_units(sorted_model)
 
   # Generate the rhs function
-  model_function = create_function_julia!(sorted_model,observed,name)
+  model_function = create_function_julia(sorted_model,observed,name)
 
   # Create the default arguments
   named_states = OrderedDict{String, Any}()
