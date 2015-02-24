@@ -3,7 +3,7 @@ module DataTypes
 using DataStructures
 import Base.convert, Base.show, Base.showerror, Base.log, Base.log10, Base.exp, Base.isless, Base.ifelse, Base.sqrt
 
-export convert, Parameter, Forcing, Equation
+export Parameter, Forcing, Equation
 export Species, Compartment, Reactant, Component
 export MEReaction, Reaction
 export MESource, ReactionSource, OdeSource, OdeSorted, OdeModel
@@ -199,7 +199,7 @@ end
 type Equation
     Expr::Union(Expr, Symbol, Number)
     Exported::Bool
-    Dim::Dimension
+    Units::Unit
 end
 type Species
     Value::Float64
@@ -226,7 +226,7 @@ type MEReaction
     From::Array{String, 1}
     To::Array{String, 1}
     Expr::Union(Expr, Symbol)
-    Dim::Dimension
+    Units::Unit
 end
 type Reaction
     Substrates::Array{Reactant, 1}
@@ -234,7 +234,7 @@ type Reaction
     Expr::Union(Expr, Symbol)
     Compartment::String
     Exported::Bool
-    Dim::Dimension
+    Units::Unit
 end
 
 # Container for the structured description of the simulation language

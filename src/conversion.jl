@@ -250,7 +250,7 @@ function expand_master_equation_rules(model, components_by_species, combinations
       name_reaction = "v_"*name_substrate*"_"*name_product
       expr = parse(name_substrate*"*("*string(val1.Expr)*")")
       reactions[name_reaction] = Reaction([Reactant(name_substrate, 1)], [Reactant(name_product, 1)], expr,
-                            model.Species[val1.Species].Compartment, false, val1.Dim)
+                            model.Species[val1.Species].Compartment, false, val1.Units)
     end
   end
   return reactions
@@ -262,7 +262,7 @@ function convert_master_equation_equations(model, components_by_species, combina
   equations = Dict{String, Equation}()
   for (key,val) in model.MEEquations
     substituted_expression = expand_master_equation_expression(val.Expr, combinations_per_species)
-    equations[key] = Equation(parse(substituted_expression), val.Exported, val.Dim)
+    equations[key] = Equation(parse(substituted_expression), val.Exported, val.Units)
   end
   return equations
 end
@@ -388,7 +388,7 @@ function reaction_to_derivative(model)
   end
   new_equations = Dict{String, Equation}()
   for (key,val) in model.Reactions
-      new_equations[key] = Equation(val.Expr, val.Exported, val.Dim)
+      new_equations[key] = Equation(val.Expr, val.Exported, val.Units)
   end
   for (key,val) in states_as_reactants
     if !haskey(model.Species, key)
@@ -408,8 +408,8 @@ function reaction_to_derivative(model)
                                model.Reactions[i[1]].Compartment * "/" * model.Species[key].Compartment
           end
           # Assume that all generate the same units (otherwise there is an error!!)
-          unit = new_equations[i[1]].Dim * Dimension(model.Parameters[model.Reactions[i[1]].Compartment].Units) /
-                 Dimension(model.Parameters[model.Species[key].Compartment].Units)
+          unit = new_equations[i[1]].Units * model.Parameters[model.Reactions[i[1]].Compartment].Units /
+                 model.Parameters[model.Species[key].Compartment].Units
       end
       new_equations["d_"*key*"_dt"] = Equation(parse(time_derivative), true, unit)
   end
@@ -424,22 +424,22 @@ function generate_level0(model)
   equations = Dict{String, Equation}()
   c = 1
   for (key,val) in model.Parameters
-    equations[key] = Equation(parse(key * "= params[$c]"), false, val.Units.d)
+    equations[key] = Equation(parse(key * "= params[$c]"), false, val.Units)
     c += 1
   end
   c = 1
   for (key,val) in model.States
-    equations[key] = Equation(parse(key * "= states[$c]"), false, val.Units.d)
+    equations[key] = Equation(parse(key * "= states[$c]"), false, val.Units)
     c += 1
   end
   c = 1
   for (key,val) in model.Forcings
-    equations[key] = Equation(parse(key * "= forcs[$c]"), false, val.Units.d)
+    equations[key] = Equation(parse(key * "= forcs[$c]"), false, val.Units)
     c += 1
   end
   for (key,val) in model.Constants
     rhs = float(val.Value * val.Units.f)
-    equations[key] = Equation(parse(key * "= $(rhs)"), false, val.Units.d)
+    equations[key] = Equation(parse(key * "= $(rhs)"), false, val.Units)
     c += 1
   end
   return equations

@@ -22,7 +22,7 @@ function check_units(sorted_model::OdeSorted)
   for (key,val) in sorted_model.States  given_units[symbol(key)] = val.Units.d end
   for (key,val) in sorted_model.Forcings  given_units[symbol(key)] = val.Units.d end
   for level in sorted_model.SortedEquations
-    for (key,val) in level  given_units[symbol(key)] = val.Dim end
+    for (key,val) in level  given_units[symbol(key)] = val.Units.d end
   end
   for level in sorted_model.SortedEquations[2:end]
     for (key,val) in level
