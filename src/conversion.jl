@@ -181,7 +181,7 @@ end
 # This return a Dict of Species that may be fused with the existing Species Dict in the model
 function generate_species_from_components(model, components_by_species, combinations_per_species)
   # Create the species component of the reaction model (this actually correspons to the component-forms)
-  species = Dict{String, Species}() 
+  species = Dict{String, Species}()
   # Iterate for each species
   for (key1,val1) in components_by_species
     # Get the units and compartment from the species (this species will actually be deleted)
@@ -227,7 +227,7 @@ function expand_master_equation_rules(model, components_by_species, combinations
     # All possible combinations
     combinations_from_to = collect(product(from_rows, to_rows))
     # Only those combinations where the unspecified components are equal can be matched.
-    good_match = {} 
+    good_match = {}
     for i = 1:length(combinations_from_to)
         select_columns = findin(combinations_per_species[val1.Species][2], setdiff(combinations_per_species[val1.Species][2], val1.Component))
         other_comps_from = combinations_per_species[val1.Species][1][combinations_from_to[i][1],select_columns]
@@ -235,7 +235,7 @@ function expand_master_equation_rules(model, components_by_species, combinations
         if other_comps_from == other_comps_to
             push!(good_match, combinations_from_to[i])
         end
-    end      
+    end
     # For every combination, generate a Reaction where the species are created using the same notation as for the "generate_species_from_components" function
     names_components = combinations_per_species[val1.Species][2]
     for i in 1:size(good_match)[1]
@@ -308,7 +308,7 @@ function expand_master_equation_expression(expr, combinations_per_species)
     for j in 1:size(rows)[1]
       if j == 1
         expanded_name *= species[i]
-      else 
+      else
         expanded_name *= " + "*species[i]
       end
       for h in 1:size(combinations_per_species[species[i]][1])[2]
@@ -374,7 +374,7 @@ function reaction_to_derivative(model)
     for i in val.Products
       !haskey(states_as_reactants, i.Name) && (states_as_reactants[i.Name] = {})
       push!(states_as_reactants[i.Name], (key, i.Stoichiometry, 1))
-    end    
+    end
   end
   new_equations = Dict{String, Equation}()
   for (key,val) in model.Reactions
@@ -393,16 +393,16 @@ function reaction_to_derivative(model)
           if time_derivative != ""
             time_derivative *= " + " * "(" * string(i[3]) * "*" * string(i[2]) * "(" * string(new_equations[i[1]].Expr) * ")" * ")" *
                                model.Reactions[i[1]].Compartment * "/" * model.Species[key].Compartment
-          else 
+          else
             time_derivative *= "(" * string(i[3]) * "*" * string(i[2]) * "(" * string(new_equations[i[1]].Expr) * ")" * ")" *
                                model.Reactions[i[1]].Compartment * "/" * model.Species[key].Compartment
           end
           # Assume that all generate the same units (otherwise there is an error!!)
-          unit = new_equations[i[1]].Dim * Dimension(model.Parameters[model.Reactions[i[1]].Compartment].Units) / 
+          unit = new_equations[i[1]].Dim * Dimension(model.Parameters[model.Reactions[i[1]].Compartment].Units) /
                  Dimension(model.Parameters[model.Species[key].Compartment].Units)
       end
       new_equations["d_"*key*"_dt"] = Equation(parse(time_derivative), true, unit)
-  end 
+  end
   return new_equations
 end
 
@@ -421,17 +421,17 @@ function generate_level0(model)
   for (key,val) in model.States
     equations[key] = Equation(parse(key * "= states[$c]"), false, val.Units.d)
     c += 1
-  end  
+  end
   c = 1
   for (key,val) in model.Forcings
     equations[key] = Equation(parse(key * "= forcs[$c]"), false, val.Units.d)
     c += 1
-  end   
+  end
   for (key,val) in model.Constants
     rhs = float(val.Value * val.Units.f)
     equations[key] = Equation(parse(key * "= $(rhs)"), false, val.Units.d)
     c += 1
-  end        
+  end
   return equations
 end
 
@@ -446,7 +446,7 @@ function sort_equations(model::OdeSource)
         unsorted_keys = unsorted_equations
         for j in unsorted_keys
           rhs = Set(lhs_to_rhs[j])
-          level = 2  
+          level = 2
           for i in 1:length(equations)
             if length(rhs) == 0
               break
@@ -469,7 +469,7 @@ function sort_equations(model::OdeSource)
           error("There seem to be some circular dependencies")
         end
     end
-    return OdeSorted(checked_ode_model.Constants, checked_ode_model.Parameters, 
+    return OdeSorted(checked_ode_model.Constants, checked_ode_model.Parameters,
                   checked_ode_model.Forcings, checked_ode_model.States, equations)
 end
 
@@ -485,23 +485,24 @@ end
 # Compress model
 # Reduces any model to level 2 (i.e. only input instruction and calculatio of observers and time derivatives)
 #######
-function compress_model(model::OdeSorted)
+function compress_model(model::OdeSorted; level = 2)
   equations = deepcopy(model.SortedEquations)
-  if length(equations) < 3
-    return model 
+  if length(equations) < level + 1
+    return model
   end
-  for i in linrange(length(equations), 3, length(equations) - 2)
+  for i in linrange(length(equations), level + 1, length(equations) - level)
     for (key,val) in equations[i]
       equations[i][key].Expr = expand_expression(val.Expr, equations)
       equations[i-1][key] = equations[i][key]
     end
   end
   new_model = deepcopy(model)
-  new_model.SortedEquations = equations[1:2]
-  lhs_names = collect(keys(new_model.SortedEquations[2]))
-  for i in lhs_names
-    if !new_model.SortedEquations[2][i].Exported
-      delete!(new_model.SortedEquations[2], i)
+  new_model.SortedEquations = equations[1:level]
+  lhs_names = collect(keys(new_model.SortedEquations[level]))
+  names_derivatives = ["d_$(i)_dt" for i in collect(keys(model.States))]
+  for i in setdiff(lhs_names, names_derivatives)
+    if !new_model.SortedEquations[level][i].Exported
+      delete!(new_model.SortedEquations[level], i)
     end
   end
   return new_model
@@ -517,10 +518,10 @@ end
 function expand_expression(variable::Symbol, equations)
   if in(string(variable), list_of_functions) | in(string(variable), collect(keys(equations[1])))
     return variable
-  else 
+  else
     for i in 2:length(equations)
       if in(string(variable), collect(keys(equations[i])))
-        return :(($(equations[i][string(variable)].Expr))) 
+        return :(($(equations[i][string(variable)].Expr)))
       end
     end
     error("I cannot find dependency for $variable")
@@ -535,8 +536,8 @@ function get_lhs(model)
     states = collect(keys(model.States))
     parameters = collect(keys(model.Parameters))
     forcings = collect(keys(model.Forcings))
-    constants = collect(keys(model.Constants)) 
-    equations = collect(keys(model.Equations))    
+    constants = collect(keys(model.Constants))
+    equations = collect(keys(model.Equations))
     return states, parameters, forcings, constants, equations
 end
 
@@ -574,7 +575,7 @@ function get_rhs(Equations)
                 push!(lhs_to_rhs[key], j)
           else
                 lhs_to_rhs[key] = [j]
-          end            
+          end
           if haskey(rhs_to_lhs, j)
                 push!(rhs_to_lhs[j], key)
           else
@@ -590,39 +591,39 @@ function get_rhs(Equations)
         push!(rhs_vars_array, string(i))
     end
    return rhs_vars_array, rhs_to_lhs, lhs_to_rhs
-end #function get_rhs_var{Dict} 
+end #function get_rhs_var{Dict}
 
 function check_lhs_rhs(model)
     lhs_states, lhs_parameters, lhs_forcings, lhs_constants, lhs_equations = get_lhs(model)
     all_rhs, rhs_to_lhs, lhs_to_rhs = get_rhs(model.Equations)
     new_model = deepcopy(model)
     for i in all_rhs
-        i ∉ [lhs_states, lhs_parameters, lhs_forcings, lhs_constants, lhs_equations] && 
+        i ∉ [lhs_states, lhs_parameters, lhs_forcings, lhs_constants, lhs_equations] &&
           error("The input $i is missing from the model")
     end
     for i in lhs_parameters
-        if i ∉ all_rhs 
+        if i ∉ all_rhs
             warn("The output is not dependent on the parameter $i. It has been removed from the model.")
             delete!(new_model.Parameters, i)
         end
     end
     for i in lhs_constants
-        if i ∉ all_rhs 
+        if i ∉ all_rhs
             warn("The output is not dependent on the constant $i. It has been removed from the model.")
             delete!(new_model.Constants, i)
         end
-    end  
+    end
     for i in lhs_forcings
-        if i ∉ all_rhs 
+        if i ∉ all_rhs
             warn("The output is not dependent on the forcing $i. It has been removed from the model.")
             delete!(new_model.Forcings, i)
         end
-    end  
+    end
     for i in lhs_states
-        if i ∉ all_rhs 
+        if i ∉ all_rhs
             warn("The output is not dependent on the state $i.")
         end
-    end 
+    end
     return new_model, rhs_to_lhs, lhs_to_rhs
 end
 
@@ -636,11 +637,9 @@ function check_derivatives(model)
     lhs = collect(keys(model.Equations))
     for i in names_derivatives
         if i ∉ lhs
-            error("The time derivative $i is not present in the model.") 
+            error("The time derivative $i is not present in the model.")
         end
         new_model.Equations[i].Exported = true
     end
     return new_model
 end
-
-
