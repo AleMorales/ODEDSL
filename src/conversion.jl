@@ -4,69 +4,19 @@ using Iterators
 #######
 # Fuse models
 # We overload the + operator and dispatch depending on the different possible combinations
+# Following priorities: State  > Forcing > Parameter > Constant
 #######
-function +(x::MESource, y::MESource)
-    new_x = deepcopy(x)
-    merge!(new_x.Constants, y.Constants)
-    merge!(new_x.Parameters, y.Parameters)
-    merge!(new_x.Forcings, y.Forcings)
-    merge!(new_x.States, y.States)
-    merge!(new_x.Species, y.Species)
-    merge!(new_x.Components, y.Components)
-    merge!(new_x.Reactions, y.Reactions)
-    merge!(new_x.MEReactions, y.MEReactions)
-    merge!(new_x.MEEquations, y.MEEquations)
-    for (key,val) in y.Equations
-        if haskey(new_x.Equations, key)
-            new_x.Equations[key].Expr =  parse("(" * string(new_x.Equations[key].Expr) * ")" * " + " * "(" * string(val.Expr) * ")")
-        else
-            new_x.Equations[key] = val
-        end
-    end
-    return new_x
-end
-function +(x::MESource, y::ReactionSource)
-    new_x = deepcopy(x)
-    merge!(new_x.Constants, y.Constants)
-    merge!(new_x.Parameters, y.Parameters)
-    merge!(new_x.Forcings, y.Forcings)
-    merge!(new_x.States, y.States)
-    merge!(new_x.Species, y.Species)
-    merge!(new_x.Reactions, y.Reactions)
-    for (key,val) in y.Equations
-        if haskey(new_x.Equations, key)
-            new_x.Equations[key].Expr =  parse("(" * string(new_x.Equations[key].Expr) * ")" * " + " * "(" * string(val.Expr) * ")")
-        else
-            new_x.Equations[key] = val
-        end
-    end
-    return new_x
-end
-+(x::ReactionSource, y::MESource) = y + x
-function +(x::MESource, y::OdeSource)
-    new_x = deepcopy(x)
-    merge!(new_x.Constants, y.Constants)
-    merge!(new_x.Parameters, y.Parameters)
-    merge!(new_x.Forcings, y.Forcings)
-    merge!(new_x.States, y.States)
-    for (key,val) in y.Equations
-        if haskey(new_x.Equations, key)
-            new_x.Equations[key].Expr =  parse("(" * string(new_x.Equations[key].Expr) * ")" * " + " * "(" * string(val.Expr) * ")")
-        else
-            new_x.Equations[key] = val
-        end
-    end
-    return new_x
-end
-+(x::OdeSource, y::MESource) = y + x
 function +(x::OdeSource, y::OdeSource)
     new_x = deepcopy(x)
+    # Merge inputs
     merge!(new_x.Constants, y.Constants)
     merge!(new_x.Parameters, y.Parameters)
     merge!(new_x.Forcings, y.Forcings)
     merge!(new_x.States, y.States)
+    # Remove redundant names based on priority scheme described in the above
+    names_derivatives = ["d_$(i)_dt" for i in collect(keys(new_x.States))]
     for (key,val) in y.Equations
-        if haskey(new_x.Equations, key)
+        if haskey(new_x.Equations, key) && in(key, names_derivatives)
             new_x.Equations[key].Expr =  parse("(" * string(new_x.Equations[key].Expr) * ")" * " + " * "(" * string(val.Expr) * ")")
         else
             new_x.Equations[key] = val
@@ -74,39 +24,7 @@ function +(x::OdeSource, y::OdeSource)
     end
     return new_x
 end
-function +(x::ReactionSource, y::ReactionSource)
-    new_x = deepcopy(x)
-    merge!(new_x.Constants, y.Constants)
-    merge!(new_x.Parameters, y.Parameters)
-    merge!(new_x.Forcings, y.Forcings)
-    merge!(new_x.States, y.States)
-    merge!(new_x.Species, y.Species)
-    merge!(new_x.Reactions, y.Reactions)
-    for (key,val) in y.Equations
-        if haskey(new_x.Equations, key)
-            new_x.Equations[key].Expr =  parse("(" * string(new_x.Equations[key].Expr) * ")" * " + " * "(" * string(val.Expr) * ")")
-        else
-            new_x.Equations[key] = val
-        end
-    end
-    return new_x
-end
-function +(x::ReactionSource, y::OdeSource)
-    new_x = deepcopy(x)
-    merge!(new_x.Constants, y.Constants)
-    merge!(new_x.Parameters, y.Parameters)
-    merge!(new_x.Forcings, y.Forcings)
-    merge!(new_x.States, y.States)
-    for (key,val) in y.Equations
-        if haskey(new_x.Equations, key)
-            new_x.Equations[key].Expr =  parse("(" * string(new_x.Equations[key].Expr) * ")" * " + " * "(" * string(val.Expr) * ")")
-        else
-            new_x.Equations[key] = val
-        end
-    end
-    return new_x
-end
-+(x::OdeSource, y::ReactionSource) = y + x
+
 
 
 #######

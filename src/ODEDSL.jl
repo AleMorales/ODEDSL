@@ -4,6 +4,7 @@ module ODEDSL
 include("utils.jl")
 include("datatypes.jl")
 include("parser.jl")
+include("symbolic.jl")
 include("conversion.jl")
 include("codegeneration.jl")
 include("simulation.jl")
