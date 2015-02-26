@@ -367,7 +367,7 @@ function sort_equations(model::OdeSource)
     checked_ode_model, rhs_to_lhs, lhs_to_rhs = check_lhs_rhs(model);
     check_derivatives(checked_ode_model);
     equations = Dict{String, Equation}[]
-    push!(equations, generate_level0(model))
+    push!(equations, generate_level0(checked_ode_model))
     unsorted_equations = collect(keys(checked_ode_model.Equations))
     while length(unsorted_equations) > 0
         nsorted = length(unsorted_equations)
@@ -549,7 +549,13 @@ function check_lhs_rhs(model)
     end
     for i in lhs_states
         if i ∉ all_rhs
-            warn("The output is not dependent on the state $i.")
+            warn("The output is not dependent on the state $i, but it has NOT been removed.")
+        end
+    end
+    for i in lhs_equations
+        if i ∉ all_rhs && !(new_model.Equations[i].Exported)
+            warn("The output is not dependent on the intermediate variable $i. It has been removed from the model.")
+            delete!(new_model.Equations, i)
         end
     end
     return new_model, rhs_to_lhs, lhs_to_rhs
