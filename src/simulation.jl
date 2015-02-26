@@ -213,7 +213,7 @@ end
   # If we have observed variables we call the model function again
   if nder > 0
     for i in 1:length(times)
-      forcings = [linear_interpolate(forcings_data[j][:,1], forcings_data[j][:,2], t) for j in 1:length(forcings)]
+      forcings = [linear_interpolate(forcings_data[j][:,1], forcings_data[j][:,2], times[i]) for j in 1:length(forcings)]
       model_call  = model(times[i], vec(output[i,2:(neq + 1)]), parameters, forcings)
       for h in 1:nder
       @inbounds  output[i,neq + 1 + h] = model_call[2][h]
