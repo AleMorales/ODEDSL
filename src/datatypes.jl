@@ -330,7 +330,7 @@ States:
 $(paste("\n", ["$(i[1]) = $(i[2])" for i in model.States]))
 Equations:
 ----------
-$(paste("\n\n", ["$(i[1]) ($(i[2].Dim)) = $(i[2])" for i in model.Equations]))
+$(paste("\n\n", ["$(i[1]) ($(i[2].Units.d)) = $(i[2])" for i in model.Equations]))
 """)
 end
 
@@ -352,8 +352,8 @@ States:
 $(paste("\n", ["$(i[1]) = $(i[2])" for i in model.States]))
 Equations:
 ----------
-$(prod([paste("\n\n", "$(j[2]) ($(j[2].Dim))") for j in model.SortedEquations[1]]))
-$(prod([paste("\n\n", ["$(i[1]) ($(i[2].Dim)) = $(i[2])" for i in j]) for j in model.SortedEquations[2:end]]))
+$(prod([paste("\n\n", "$(j[2]) ($(j[2].Units))") for j in model.SortedEquations[1]]))
+$(prod([paste("\n\n", ["$(i[1]) ($(i[2].Units.d)) = $(i[2])" for i in j]) for j in model.SortedEquations[2:end]]))
 """)
 end
 show(io::IO, par::Parameter) = print(io,"$(par.Value*par.Units)")
