@@ -235,7 +235,7 @@ function write_model_Julia!(States::OrderedDict{String, Any},
     for (key,val) in Parameters
       println(f, "Parameters[\"$key\"] = $val")
     end
-        println(f, "Forcings = OrderedDict{String, Any}()")
+    println(f, "Forcings = OrderedDict{String, Any}()")
     for (key,val) in Forcings
       println(f, "Forcings[\"$key\"] = $val")
     end
@@ -416,15 +416,17 @@ function write_model_R!(States::OrderedDict{ASCIIString, Float64},
     transformed_parameters = replace(transformed_parameters, "=>", "=")
     units = replace(string(Coef_parameters)[2:(end-1)], "=>", "=")
     println(f, "Parameters = list(Values = c($transformed_parameters), Coefs = c($units)),")
-    println(f, "Forcings = list(Values = list(")
-    forcs = ""
-    for (key,val) in Forcings
-      forcs *= "$key = cbind(c($(string(val[1])[2:(end-1)])),c($(string(val[2])[2:(end-1)]))),"
+    if length(Forcings) > 0
+      println(f, "Forcings = list(Values = list(")
+      forcs = ""
+      for (key,val) in Forcings
+        forcs *= "$key = cbind(c($(string(val[1])[2:(end-1)])),c($(string(val[2])[2:(end-1)]))),"
+      end
+      forcs = forcs[1:(end-1)]
+      println(f, forcs)
+      units = replace(string(Coef_forcings)[2:(end-1)], "=>", "=")
+      println(f, "), Coefs = c($units)),")
     end
-    forcs = forcs[1:(end-1)]
-    println(f, forcs)
-    units = replace(string(Coef_forcings)[2:(end-1)], "=>", "=")
-    println(f, "), Coefs = c($units)),")
     println(f, "Time = 0:1,")
     names_observed = string(Observed)[13:(end-1)]
     units = replace(string(Coef_observed)[2:(end-1)], "=>", "=")
@@ -642,15 +644,17 @@ function write_model_Rcpp!(States::OrderedDict{ASCIIString, Float64},
     transformed_parameters = replace(transformed_parameters, "=>", "=")
     units = replace(string(Coef_parameters)[2:(end-1)], "=>", "=")
     println(f, "Parameters = list(Values = c($transformed_parameters), Coefs = c($units)),")
-    println(f, "Forcings = list(Values = list(")
-    forcs = ""
-    for (key,val) in Forcings
-      forcs *= "$key = cbind(c($(string(val[1])[2:(end-1)])),c($(string(val[2])[2:(end-1)]))),"
+    if length(Forcings) > 0
+      println(f, "Forcings = list(Values = list(")
+      forcs = ""
+      for (key,val) in Forcings
+        forcs *= "$key = cbind(c($(string(val[1])[2:(end-1)])),c($(string(val[2])[2:(end-1)]))),"
+      end
+      forcs = forcs[1:(end-1)]
+      println(f, forcs)
+      units = replace(string(Coef_forcings)[2:(end-1)], "=>", "=")
+      println(f, "), Coefs = c($units)),")
     end
-    forcs = forcs[1:(end-1)]
-    println(f, forcs)
-    units = replace(string(Coef_forcings)[2:(end-1)], "=>", "=")
-    println(f, "), Coefs = c($units)),")
     println(f, "Time = 0:1,")
     names_observed = string(Observed)[13:(end-1)]
     units = replace(string(Coef_observed)[2:(end-1)], "=>", "=")
