@@ -1,5 +1,6 @@
 using Sundials
 using StrPack
+using Grid
 
 # Add a struct for calculations with analytical Jacobian
 
@@ -16,7 +17,7 @@ using StrPack
    cols::Ptr{Ptr{Float64}}
 end
 
-@inbounds function linear_interpolate(x::Array{Float64,1}, y::Array{Float64,1}, xout::Float64)
+@inbounds function linear_interpolate(x::Vector{Float64}, y::Vector{Float64}, xout::Float64)
    if xout >= x[end]
       return y[end]
    elseif xout <= x[1]
@@ -33,7 +34,7 @@ end
 @inbounds function interface_ode(t::Sundials.realtype, y::Sundials.N_Vector, ydot::Sundials.N_Vector, user_data::Array{Any, 1})
     y = Sundials.asarray(y)
     ydot = Sundials.asarray(ydot)
-    forcings = [linear_interpolate(user_data[3][i][:,1], user_data[3][i][:,2], t) for i in 1:length(user_data[3])]
+    forcings = Float64[user_data[3][i][t] for i in 1:length(user_data[3])]
     derivatives = user_data[1](t, y, user_data[2], forcings)[1]
     for i in 1:length(derivatives)
         ydot[i] = derivatives[i]
@@ -53,14 +54,20 @@ J = pointer_to_array(unsafe_load(dlsmat.cols, 1), (int(neq), int(neq)), false)
 # Need to convert user_data into Array{Any, 1}...
 user_data = unsafe_pointer_to_objref(user_data_p)
 # Do the annoying interpolation again...
-forcings = [linear_interpolate(user_data[3][i][:,1], user_data[3][i][:,2], t) for i in 1:length(user_data[3])]
+forcings = Float64[user_data[3][i][t] for i in 1:length(user_data[3])]
 # Call Jacobian function and modify in-place
 user_data[4](t, y, user_data[2], forcings, J)
 return int32(0)
 end
 
 # Function to simulate the model
-@inbounds function simulate(times, states, parameters, forcings_data, settings, model, jacobian)
+@inbounds function simulate(times::Vector{Float64},
+                            states::Vector{Float64},
+                            parameters::Vector{Float64},
+                            forcings_data,
+                            settings::Dict{Any,Any},
+                            model::Function,
+                            jacobian::Function)
   neq = length(states)
 
   if settings["method"] == "bdf"
@@ -159,9 +166,7 @@ end
 
   # Make a first call to the model to check that everything is ok and retrieve the number of observed variables
   forcings = zeros(Float64, length(forcings_data))
-  for i in 1:length(forcings)
-    forcings[i] = linear_interpolate(forcings_data[i][:,1], forcings_data[i][:,2], times[1])
-  end
+  for i in 1:length(forcings) forcings[i] = forcings_data[i][times[1]] end
   first_call  = model(times[1], states, parameters, forcings)
 
   # Fill up the output matrix with the values for the initial time
@@ -213,10 +218,10 @@ end
   # If we have observed variables we call the model function again
   if nder > 0
     for i in 1:length(times)
-      forcings = [linear_interpolate(forcings_data[j][:,1], forcings_data[j][:,2], times[i]) for j in 1:length(forcings)]
+      for h in 1:length(forcings) forcings[h] = forcings_data[h][times[i]] end
       model_call  = model(times[i], vec(output[i,2:(neq + 1)]), parameters, forcings)
       for h in 1:nder
-      @inbounds  output[i,neq + 1 + h] = model_call[2][h]
+      output[i,neq + 1 + h] = model_call[2][h]
       end
     end
   end
@@ -238,7 +243,8 @@ function simulate(model::OdeModel, times, settings)
     !haskey(settings, "maxnonlin") && (settings["maxnonlin"] = 12)
     !haskey(settings, "maxconvfail") && (settings["maxconvfail"] = 12)
     !haskey(settings, "jacobian") && (settings["jacobian"] = false)
-    forcs = [[i[2][1] i[2][2]] for i in model.Forcings]
+    # The following conversions should be performed at storage time...
+    forcs = [InterpIrregular(i[2][1], i[2][2], BCnearest, InterpLinear) for i in model.Forcings]
     states = Float64[i[2] for i in model.States]
     parameters = Float64[i[2] for i in model.Parameters]
     simulation = convert(DataFrame, simulate(times, states, parameters,
