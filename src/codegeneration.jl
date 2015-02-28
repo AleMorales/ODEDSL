@@ -123,7 +123,6 @@ end
 function create_derivatives_julia(model::OdeSorted, states, name)
   code = ""
   names_derivatives = ["d_"*i*"_dt" for i in states]
-  print(names_derivatives)
   for level in 1:length(model.SortedEquations)
     for (lhs, rhs) in model.SortedEquations[level]
         if level == 1
