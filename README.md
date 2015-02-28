@@ -2,6 +2,8 @@
 
 [![Build Status](https://travis-ci.org/AleMorales/ODEDSL.jl.svg?branch=master)](https://travis-ci.org/AleMorales/ODEDSL.jl)
 
+**WARNING: This package is under development. API may change and it is not recommended for production stages.**
+
 A domain specific language for describing state-space models based on ordinary differential equations.
 
 It provides syntax for describing models in terms of differential equations, chemical reactions or the chemical master equation.
