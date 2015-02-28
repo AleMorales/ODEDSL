@@ -278,17 +278,6 @@ type OdeSorted
     SortedEquations::Array{Dict{String, Equation}, 1}
 end
 
-# Container that contains the generated code in Julia.
-type OdeModel
-    States::OrderedDict{String, Any}
-    Parameters::OrderedDict{String, Any}
-    Forcings::OrderedDict{String, Any}
-    Observed_names::Array{String, 1}
-    Model::Function
-    Observed::Function
-    Jacobian::Function
-end
-
 
 ##################################################
 #######  Methods to print the datatypes  ########

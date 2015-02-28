@@ -247,7 +247,7 @@ function write_model_Julia!(States::OrderedDict{String, Any},
     println(f, "$Model")
     println(f, "$(Observed_model)")
     println(f, "$Jacobian")
-    println(f, "ODEDSL.DataTypes.OdeModel(States, Parameters, Forcings, Observed, derivatives_$name, observed_$name, jacobian_$name)")
+    println(f, "SimulationModels.OdeModel(States, Parameters, Forcings, Observed, derivatives_$name, observed_$name, jacobian_$name)")
     println(f, "end")
     close(f)
     nothing
