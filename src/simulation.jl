@@ -17,28 +17,13 @@ using Grid
    cols::Ptr{Ptr{Float64}}
 end
 
-@inbounds function linear_interpolate(x::Vector{Float64}, y::Vector{Float64}, xout::Float64)
-   if xout >= x[end]
-      return y[end]
-   elseif xout <= x[1]
-      return y[1]
-   else
-      index = searchsortedfirst(x, xout) - 1
-      inty = (y[index + 1] - y[index])/(x[index + 1] - x[index])*(xout -x[index]) + y[index]
-      return inty
-   end
-end
-
 # We must convert ydot into an array and assign element-by-element
 # This is because we are modifying by-reference an NVector in Sundials...
 @inbounds function interface_ode(t::Sundials.realtype, y::Sundials.N_Vector, ydot::Sundials.N_Vector, user_data::Array{Any, 1})
     y = Sundials.asarray(y)
     ydot = Sundials.asarray(ydot)
     forcings = Float64[user_data[3][i][t] for i in 1:length(user_data[3])]
-    derivatives = user_data[1](t, y, user_data[2], forcings)[1]
-    for i in 1:length(derivatives)
-        ydot[i] = derivatives[i]
-    end
+    user_data[1](t, y, user_data[2], forcings, ydot)
     return int32(0)
 end
 
@@ -67,6 +52,7 @@ end
                             forcings_data,
                             settings::Dict{Any,Any},
                             model::Function,
+                            observer::Function,
                             jacobian::Function)
   neq = length(states)
 
@@ -167,14 +153,12 @@ end
   # Make a first call to the model to check that everything is ok and retrieve the number of observed variables
   forcings = zeros(Float64, length(forcings_data))
   for i in 1:length(forcings) forcings[i] = forcings_data[i][times[1]] end
-  first_call  = model(times[1], states, parameters, forcings)
+  observed = zeros(Float64, settings["nobs"])
+  observer(times[1], states, parameters, forcings, observed)
 
-  # Fill up the output matrix with the values for the initial time
-
-  nder = length(first_call[2])
   # Use time as column -> Because of column-ordered
-  output = zeros(Float64, (neq + nder + 1, length(times)))
-  output[:,1] = [times[1], states, first_call[2]]
+  output = zeros(Float64, (neq + settings["nobs"] + 1, length(times)))
+  output[:,1] = [times[1], states, observed]
 
   # Main time loop. Each timestep call cvode. Handle exceptions and fill up output
   t = times[1]
@@ -217,11 +201,11 @@ end
     end
   end
   # If we have observed variables we call the model function again
-  if nder > 0
+  if settings["nobs"] > 0
     for i in 1:length(times)
       for h in 1:length(forcings) forcings[h] = forcings_data[h][times[i]] end
-      model_call  = model(times[i], vec(output[2:(neq + 1), i]), parameters, forcings)
-      for h in 1:nder output[neq + 1 + h, i] = model_call[2][h] end
+      observer(times[i], vec(output[2:(neq + 1), i]), parameters, forcings, observed)
+      for h in 1:settings["nobs"] output[neq + 1 + h, i] = observed[h] end
     end
   end
 
@@ -242,14 +226,15 @@ function simulate(model::OdeModel, times, settings)
     !haskey(settings, "maxnonlin") && (settings["maxnonlin"] = 12)
     !haskey(settings, "maxconvfail") && (settings["maxconvfail"] = 12)
     !haskey(settings, "jacobian") && (settings["jacobian"] = false)
+    settings["nobs"] = length(model.Observed_names)
     # The following conversions should be performed at storage time...
     forcs = [InterpIrregular(i[2][1], i[2][2], BCnearest, InterpLinear) for i in model.Forcings]
     states = Float64[i[2] for i in model.States]
     parameters = Float64[i[2] for i in model.Parameters]
     simulation = convert(DataFrame, simulate(times, states, parameters,
-                            forcs, settings, model.Model, model.Jacobian))
+                            forcs, settings, model.Model, model.Observed, model.Jacobian))
     # Use names for indexing...
     names!(simulation, convert(Array{Symbol, 1}, [symbol("$i") for i in
-                           ["time", collect(keys(model.States)), model.Observed]]))
+                           ["time", collect(keys(model.States)), model.Observed_names]]))
     return simulation
 end

@@ -283,8 +283,9 @@ type OdeModel
     States::OrderedDict{String, Any}
     Parameters::OrderedDict{String, Any}
     Forcings::OrderedDict{String, Any}
-    Observed::Array{String, 1}
+    Observed_names::Array{String, 1}
     Model::Function
+    Observed::Function
     Jacobian::Function
 end
 
