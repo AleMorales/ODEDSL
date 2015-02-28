@@ -172,8 +172,9 @@ end
   # Fill up the output matrix with the values for the initial time
 
   nder = length(first_call[2])
-  output = zeros(Float64, (length(times), neq + nder + 1))
-  output[1,:] = [times[1], states, first_call[2]]
+  # Use time as column -> Because of column-ordered
+  output = zeros(Float64, (neq + nder + 1, length(times)))
+  output[:,1] = [times[1], states, first_call[2]]
 
   # Main time loop. Each timestep call cvode. Handle exceptions and fill up output
   t = times[1]
@@ -210,23 +211,21 @@ end
        elseif flag == -27
           error("The output and initial times are too close to each other.")
        end
-    output[i,1] = times[i]
+    output[1,i] = times[i]
     for h in 1:neq
-      output[i,h+1] = y[h]
+      output[h+1,i] = y[h]
     end
   end
   # If we have observed variables we call the model function again
   if nder > 0
     for i in 1:length(times)
       for h in 1:length(forcings) forcings[h] = forcings_data[h][times[i]] end
-      model_call  = model(times[i], vec(output[i,2:(neq + 1)]), parameters, forcings)
-      for h in 1:nder
-      output[i,neq + 1 + h] = model_call[2][h]
-      end
+      model_call  = model(times[i], vec(output[2:(neq + 1), i]), parameters, forcings)
+      for h in 1:nder output[neq + 1 + h, i] = model_call[2][h] end
     end
   end
 
-  return output
+  return transpose(output)
 end
 
 function simulate(model::OdeModel, times, settings)
