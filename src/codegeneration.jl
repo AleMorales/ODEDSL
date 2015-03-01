@@ -128,20 +128,20 @@ function create_derivatives_julia(model::OdeSorted, states, name)
     for (lhs, rhs) in model.SortedEquations[level]
         if level == 1
           if in(lhs, names_forcings)
-            code *= string(rhs.Expr) * "[time]\n"
+            code *= "@inbounds const " * string(rhs.Expr) * "[time]\n"
           else
-            code *= string(rhs.Expr) * "\n"
+            code *= "@inbounds const " * string(rhs.Expr) * "\n"
           end
         elseif in(lhs, names_derivatives)
           c = findin(names_derivatives, [lhs])
-          code  *=  "ydot[$c] = " * string(rhs.Expr) * "\n"
+          code  *=  "@inbounds ydot$c = " * string(rhs.Expr) * "\n"
         else
-          code *= lhs * " = " * string(rhs.Expr) * "\n"
+          code *= "const " * lhs * " = " * string(rhs.Expr) * "\n"
         end
     end
   end
   # Construct the function
-  paste("\n","@inbounds function derivatives_$name(time::Float64, states::Vector{Float64},
+  paste("\n","function derivatives_$name(time::Float64, states::Vector{Float64},
                       params::Vector{Float64}, forcs::Vector{sim.Forcing}, ydot::Vector{Float64})\n",
                       code,"nothing \n end")
 end
@@ -155,20 +155,20 @@ function create_observed_julia(model::OdeSorted, observed, name)
     for (lhs, rhs) in model.SortedEquations[level]
         if level == 1
           if in(lhs, names_forcings)
-            code *= string(rhs.Expr) * "[time]\n"
+            code *= "@inbounds const " * string(rhs.Expr) * "[time]\n"
           else
-            code *= string(rhs.Expr) * "\n"
+            code *= "@inbounds const " * string(rhs.Expr) * "\n"
           end
         elseif in(lhs, observed)
-          code  *=  "$lhs = " * string(rhs.Expr) * "\n"
-          code  *=  "obs[$c] = $lhs\n"
+          code  *=  "@inbounds const $lhs = " * string(rhs.Expr) * "\n"
+          code  *=  " obs[$c] = $lhs\n"
           c += 1
         else
           code *= lhs * " = " * string(rhs.Expr) * "\n"
         end
     end
   end
-  paste("\n","@inbounds function observed_$name(time::Float64, states::Vector{Float64},
+  paste("\n","function observed_$name(time::Float64, states::Vector{Float64},
                       params::Vector{Float64}, forcs::Vector{sim.Forcing}, obs::Vector{Float64})\n",
                       code, "nothing \n end")
 end
