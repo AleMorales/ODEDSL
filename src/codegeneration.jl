@@ -261,6 +261,7 @@ function write_model_Julia!(States::OrderedDict{ASCIIString, Float64},
       push!(states_names, key)
       push!(states_coefs, Coef_states[key])
     end
+    println(f, "State_names = $(string(states_names)[12:end])")
     println(f, "States = sim.InputVector{Float64}($states_values, $states_coefs, $(string(states_names)[12:end]))")
     parameters_values = Float64[]
     parameters_names = ASCIIString[]
@@ -289,7 +290,7 @@ function write_model_Julia!(States::OrderedDict{ASCIIString, Float64},
     println(f, "$Model")
     println(f, "$(Observed_model)")
     println(f, "$Jacobian")
-    println(f, "sim.OdeModel(States, Parameters, Forcings, Observed, Observed_coefs, derivatives_$name, observed_$name, jacobian_$name)")
+    println(f, "sim.OdeModel(States, Parameters, Forcings, State_names, Observed, Observed_coefs, derivatives_$name, observed_$name, jacobian_$name)")
     println(f, "end")
     close(f)
     nothing
