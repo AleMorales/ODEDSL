@@ -149,7 +149,6 @@ end
 # Create the function in Julia on the Equations section of the model Dict
 function create_observed_julia(model::OdeSorted, observed, name)
   code = ""
-  c = 1
   names_forcings = collect(keys(model.Forcings))
   for level in 1:length(model.SortedEquations)
     for (lhs, rhs) in model.SortedEquations[level]
@@ -160,9 +159,9 @@ function create_observed_julia(model::OdeSorted, observed, name)
             code *= "@inbounds const " * string(rhs.Expr) * "\n"
           end
         elseif in(lhs, observed)
-          code  *=  "@inbounds const $lhs = " * string(rhs.Expr) * "\n"
-          code  *=  " obs[$c] = $lhs\n"
-          c += 1
+          c = findin(observed, [lhs])
+          code  *=  "const $lhs = " * string(rhs.Expr) * "\n"
+          code  *=  "@inbounds obs[$c] = $lhs\n"
         else
           code *= lhs * " = " * string(rhs.Expr) * "\n"
         end
