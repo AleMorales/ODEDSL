@@ -163,7 +163,7 @@ function create_observed_julia(model::OdeSorted, observed, name)
         elseif in(lhs, observed)
           c = findin(observed, [lhs])
           code  *=  "const $lhs = " * string(rhs.Expr) * "\n"
-          code  *=  "@inbounds obs[$c] = $lhs\n"
+          code  *=  "@inbounds obs$c = $lhs\n"
         else
           code *= lhs * " = " * string(rhs.Expr) * "\n"
         end
