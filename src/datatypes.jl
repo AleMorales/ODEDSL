@@ -1,7 +1,8 @@
 module DataTypes
 
 using DataStructures
-import Base.convert, Base.show, Base.showerror, Base.log, Base.log10, Base.exp, Base.isless, Base.ifelse, Base.sqrt
+import Base.convert, Base.show, Base.showerror, Base.log, Base.log10,
+       Base.exp, Base.isless, Base.ifelse, Base.sqrt, Base.abs
 
 export Parameter, Forcing, Equation
 export Species, Compartment, Reactant, Component
@@ -53,24 +54,39 @@ showerror(io::IO, e::UnitError) = print(io, "There was an error with the units")
 *(s::Number, u1::Dimension) = u1
 /(u1::Dimension, s::Number) = u1
 /(s::Number, u1::Dimension) = u1^(-s)
-function exp(d::Dimension)
-  d != none.d && (throw(UnitError()))
-  none.d
-end
+exp(d::Dimension) = d != none.d ? (throw(UnitError())) : none.d
 log(d::Dimension) = exp(d::Dimension)
 log10(d::Dimension) = exp(d::Dimension)
 sqrt(d::Dimension) = d^(1//2)
-isless(d1::Dimension, d2::Dimension) = d1 != d2 && (throw(UnitError()))
 +(d::Dimension, s::Number) = d != none.d ? (throw(UnitError())) : d
 +(s::Number, d::Dimension) = d + s
 -(d::Dimension, s::Number) = d != none.d ? (throw(UnitError())) : d
 -(s::Number, d::Dimension) = d - s
 ^(d1::Dimension, d2::Dimension) = d2 != none.d ? (throw(UnitError())) : d1
+# isless
+isless(d1::Dimension, d2::Dimension) = d1 != d2 && (throw(UnitError()))
 isless(d1::Dimension, s::Number) = d1 != none.d ? (throw(UnitError())) : d1
 isless(s::Number, d1::Dimension) = isless(d1, s)
-ifelse(d1::Dimension, d2::Dimension, s::Number) = d1 != d2 ? (throw(UnitError())) : d1
+# ifelse comparison
+ifelse(d1::Dimension, d2::Dimension, s::Number) = exp(d2::Dimension)
+ifelse(d1::Dimension, s::Number, d2::Dimension) = d2 != none.d ? (throw(UnitError())) : none.d
+ifelse(d1::Dimension, d2::Dimension, d3::Dimension) = d2 != d3 ? (throw(UnitError())) : d2
+ifelse(d1::Dimension, s1::Number, s2::Number) = none.d
+
+
+
 -(d::Dimension) = d
 ^(d1::Number, d2::Dimension) = d2 != none.d ? (throw(UnitError())) : none.d
+# abs
+abs(d::Dimension) = d
+# <
+<(d1::Dimension, d2::Dimension) = d1 != d2 ? (throw(UnitError())) : none.d
+<(d1::Dimension, n::Number) = d1 != none.d ? (throw(UnitError())) : none.d
+<(n::Number, d1::Dimension) = d1 < n
+# >
+>(d1::Dimension, d2::Dimension) = d1 != d2 ? (throw(UnitError())) : none.d
+>(d1::Dimension, n::Number) = d1 != none.d ? (throw(UnitError())) : none.d
+>(n::Number, d1::Dimension) = d1 < n
 
 # Algebra with units
 *(u1::Unit, u2::Unit) = Unit(u1.d * u2.d, u1.f*u2.f)

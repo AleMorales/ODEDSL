@@ -18,6 +18,7 @@ function paste{T <: String}(sep, s::Array{T,1})
 end
 
 # These functions are reserved in order to have a basic mathematical lingo to write the models
+# It also includes operators, reserved words such as time and control flow functions
 const list_of_functions = ["abs", "abs2", "acos", "acosd", "acosh", "acot", "acotd",
                      "acoth", "acsc", "acscd", "acsch", "asec", "asecd", "asech",
                      "asin", "asind", "asinh", "atan", "atan2", "atand", "atanh",
@@ -25,4 +26,4 @@ const list_of_functions = ["abs", "abs2", "acos", "acosd", "acosh", "acot", "aco
                      "cscd", "csch", "exp", "exp2", "expm1", "log", "log", "log10",
                      "log1p", "log2", "sec", "secd", "sech", "sin", "sind", "sinh",
                      "sqrt", "tan", "tand", "tanh", "hypot","*","+","-","/","^","%","⋅",
-                     "√","ifelse","min","max","<",">","=","<=",">="];
+                     "√","ifelse","min","max","<",">","=","<=",">=","time"];

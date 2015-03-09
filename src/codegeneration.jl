@@ -24,6 +24,8 @@ function check_units(sorted_model::OdeSorted)
   for level in sorted_model.SortedEquations
     for (key,val) in level  given_units[symbol(key)] = val.Units.d end
   end
+  # Add units of time (as input that is always available)
+  given_units[symbol("time")] = ODEDSL.DataTypes.s.d
   for level in sorted_model.SortedEquations[2:end]
     for (key,val) in level
       expected = given_units[symbol(key)]
@@ -33,11 +35,11 @@ function check_units(sorted_model::OdeSorted)
         infered_expr, c = calculate_units(val.Expr, given_units, 0)
         infered = try eval(infered_expr) catch
             error("Error when calculating units: The rhs of equation $key is not dimensionally homogeneous.
-The right hand side expression was $(val.Expr) with units $given_units") end
+The right hand side expression was $(val.Expr)") end
       end
       expected != infered && error("Error when calculating units: Expected and given units for $key did not coincide.
 I infered the units $infered but you assign it $expected.
-The right hand side expression was $(val.Expr) with units $given_units")
+The right hand side expression was $(val.Expr)")
     end
   end
 end
@@ -161,7 +163,7 @@ function create_observed_julia(model::OdeSorted, observed, name)
         elseif in(lhs, observed)
           c = findin(observed, [lhs])
           code  *=  "const $lhs = " * string(rhs.Expr) * "\n"
-          code  *=  "@inbounds obs[$c] = $lhs\n"
+          code  *=  "@inbounds obs$c = $lhs\n"
         else
           code *= lhs * " = " * string(rhs.Expr) * "\n"
         end
