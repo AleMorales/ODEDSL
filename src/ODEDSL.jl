@@ -1,14 +1,21 @@
 module ODEDSL
 
-export generate_code_Julia!, generate_code_R!, generate_code_Rcpp!
-# In order to enable docstring-style documentation of Julia code
+using DataStructures
 using Docile
 using Lexicon
+using Calculus
+
+import Calculus.differentiate, Base.min, Base.max
+
+
+# In order to enable docstring-style documentation of Julia code
+
 @document
 
 # Include the source files
 include("utils.jl")
 include("datatypes.jl")
+using .DataTypes
 include("parser.jl")
 include("symbolic.jl")
 include("conversion.jl")

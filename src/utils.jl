@@ -17,6 +17,12 @@ function paste{T <: String}(sep, s::Array{T,1})
     return output
 end
 
+
+heaviside(x) = 0.5 * (sign(x) + 1)
+dirac(x) = abs(x) <= eps(1.0)  ? 0 : Inf
+min(n::Number) = n
+max(n::Number) = n
+
 # These functions are reserved in order to have a basic mathematical lingo to write the models
 # It also includes operators, reserved words such as time and control flow functions
 const list_of_functions = ["abs", "abs2", "acos", "acosd", "acosh", "acot", "acotd",
