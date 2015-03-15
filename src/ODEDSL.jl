@@ -20,5 +20,6 @@ include("parser.jl")
 include("symbolic.jl")
 include("conversion.jl")
 include("codegeneration.jl")
+include("translate_Rcpp.jl")
 
 end
