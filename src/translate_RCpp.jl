@@ -39,9 +39,7 @@ function sub_minmax(ex::Expr)
   new_ex = deepcopy(ex)
   for i in 1:length(new_ex.args)
     if new_ex.args[i] == :min || new_ex.args[i] == :max
-        new_ex.args[i+1] = new_ex.args[(i+1):end]
-        new_ex.args  =  new_ex.args[1:2]
-        break
+        new_ex.args[i] == :min ?  (new_ex.args[i] = :Min) : (new_ex.args[i] = :Max)
     elseif isa(new_ex.args[i], Expr)
         new_ex.args[i] = sub_minmax(new_ex.args[i])
   end
@@ -108,8 +106,30 @@ inline double heaviside(const double& arg) {
 }
 
 inline double dirac(const double& arg) {
-  return abs(x) <= numeric_limits<double>::epsilon()  ? 0 : numeric_limits<double>::infinity();
+  return abs(arg) <= numeric_limits<double>::epsilon()  ? 0 : numeric_limits<double>::infinity();
 }
+
+inline double Min(const double& arg1) {
+  return arg1;
+}
+
+inline double Min(const double& arg1, const double& arg2) {
+  return arg1 < arg2 ? arg1 : arg2;
+}
+
+
+inline double Min(const double& arg1, const double& arg2, const double& arg3) {
+  return Min(arg1, Min(arg2, arg3));
+}
+
+inline double Min(const double& arg1, const double& arg2, const double& arg3, const double& arg4) {
+  return Min(arg1, Min(arg2, Min(arg3, arg4)));
+}
+
+inline double Min(const double& arg1, const double& arg2, const double& arg3, const double& arg4, const double& arg5) {
+  return Min(arg1, Min(arg2, Min(arg3, Min(arg4, arg5))));
+}
+
 
 extern "C" {
   int $(name)_derivatives(double time, N_Vector states_, N_Vector ydot_, void* inp_) {
@@ -341,7 +361,7 @@ generate_$(name)_example = function() {
                     atol = 1e-6, maxsteps = 1e3, maxord = 5, hini = 1e-3,
                     hmin = 0, hmax = 100, maxerr = 5, maxnonlin = 10,
                     maxconvfail = 10, method = "bdf", maxtime = 0, jacobian = 1,
-                    observer = 1, nder = 1),
+                    observer = 1, nder = $(length(Observed))),
     """)
     println(f,
     """
@@ -361,5 +381,5 @@ function generate_code_RCpp!(source::String; unit_analysis = false,name = "autog
   parsed_model = process_file(source)
   reaction_model = convert_master_equation(parsed_model)
   ode_model = convert_reaction_model(reaction_model)
-  generate_code_RCpp!(ode_model, unit_analysis = unit_analysis, name = name, file = file, jacobian = jacobian, sensitivities = sensitivities)
+  generate_code_RCpp!(ode_model, unit_analysis = unit_analysis, name = name, file = file, sensitivities = sensitivities)
 end
