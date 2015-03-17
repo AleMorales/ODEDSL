@@ -3,13 +3,13 @@ function paste(sep, s...)
     for i in s
         if(isa(i,String))
             output *= i * sep
-            elseif isa(i,Array{ASCIIString,1}) || isa(i,Array{UTF8String,1}) || isa(i,Array{Any,1})
+        elseif isa(i,Array{ASCIIString,1})
             output *= paste(sep,i) * sep
         end
     end
     return output
 end
-function paste{T <: String}(sep, s::Array{T,1})
+function paste(sep, s::Array{ASCIIString,1})
     output = ""
     for i in s
         output *= i * sep

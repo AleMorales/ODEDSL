@@ -414,9 +414,10 @@ end
 # Reduces any model to level 2 (i.e. only input instruction and calculatio of observers and time derivatives)
 #######
 function compress_model(model::OdeSorted; level = 2)
-  equations = deepcopy(model.SortedEquations)
+  new_model = deepcopy(model)
+  equations = new_model.SortedEquations
   if length(equations) < level + 1
-    return model
+    return new_model
   end
   for i in linrange(length(equations), level + 1, length(equations) - level)
     for (key,val) in equations[i]
@@ -424,10 +425,9 @@ function compress_model(model::OdeSorted; level = 2)
       equations[i-1][key] = equations[i][key]
     end
   end
-  new_model = deepcopy(model)
   new_model.SortedEquations = equations[1:level]
   lhs_names = collect(keys(new_model.SortedEquations[level]))
-  names_derivatives = ["d_$(i)_dt" for i in collect(keys(model.States))]
+  names_derivatives = ["d_$(i)_dt" for i in collect(keys(new_model.States))]
   for i in setdiff(lhs_names, names_derivatives)
     if !new_model.SortedEquations[level][i].Exported
       delete!(new_model.SortedEquations[level], i)
