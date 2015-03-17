@@ -95,20 +95,32 @@ function species_to_states(new_model::dt.ReactionSource)
       # Matrix with all the component_forms
       # Generate all possible combinations using repeat and the correct inner/outer combinations
       mat_comp_forms = Array(ASCIIString, number, length(components_forms))
-      inner = length(val.Components[1].Forms)
-      mat_comp_forms[1:number,1] = repeat(components_forms[1], outer = [integer(number/inner)])
+      small = components_forms[1]
+      mat_comp_forms[:,1] = repeat(small, outer = [integer(number/length(small))])
       for i in 2: length(components_forms)
-        mat_comp_forms[:,i] = repeat(components_forms[i], inner = [inner])
-        inner *= length(val.Components[i].Forms)
+        try
+          small = repeat(components_forms[i], inner = [length(small)])
+          mat_comp_forms[:,i] = repeat(small, outer = [integer(number/length(small))])
+        catch
+          println("Error in generating component-forms matrix: species was $key.")
+          println("Component_forms were $components_forms")
+          println("New assignment was $(repeat(small, outer = [integer(number/length(small))]))")
+        end
       end
       # Matrix with all the component_values
       # Generate all possible combinations using repeat and the correct inner/outer combinations
       mat_comp_values = Array(Float64, number, length(components_values))
-      inner = length(val.Components[1].Values)
-      mat_comp_values[:,1] = repeat(components_values[1], outer = [integer(number/inner)])
+      small = components_values[1]
+      mat_comp_values[:,1] = repeat(small, outer = [integer(number/length(small))])
       for i in 2: length(components_values)
-        mat_comp_values[:,i] = repeat(components_values[i], inner = [inner])
-        inner *= length(val.Components[i].Values)
+        try
+          small = repeat(components_values[i], inner = [length(small)])
+          mat_comp_values[:,i] = repeat(small, outer = [integer(number/length(small))])
+        catch
+          println("Error in generating component-values matrix: species was $key.")
+          println("Component_values were $components_values")
+          println("New assignment was $(repeat(small, outer = [integer(number/length(small))]))")
+        end
       end
       # Reduce the forms and numbers to vectors. Concatenate without intermediate symbol
       forms = Array(ASCIIString, number)
