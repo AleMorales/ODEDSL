@@ -329,9 +329,8 @@ function write_ode_model_RCpp!(States::OrderedDict{ASCIIString, Float64},
     close(f)
     f = open("$(file).R","w")
     println(f, """
-
-generate_$(name)_example = function() {
-  MiniModel <- ODEmodel\$new(
+generate_$(name) = function() {
+  ODEmodel\$new(
 
 """)
     transformed_states = string(States)[2:(end-1)]
@@ -366,11 +365,11 @@ generate_$(name)_example = function() {
     """)
     println(f,
     """
-                model = getNativeSymbolInfo(name = "$(name)_derivatives",PACKAGE = "$file")\$address,
-                observer = getNativeSymbolInfo(name = "$(name)_observer",PACKAGE = "$file")\$address,
-                jacobian = getNativeSymbolInfo(name = "$(name)_jacobian",PACKAGE = "$file")\$address,
-                extended_function = getNativeSymbolInfo(name = "$(name)_derivatives",PACKAGE = "$file")\$address,
-                extended_jacobian = getNativeSymbolInfo(name = "$(name)_jacobian",PACKAGE = "$file")\$address)
+                model = getNativeSymbolInfo(name = "$(name)_derivatives",PACKAGE = "$name")\$address,
+                observer = getNativeSymbolInfo(name = "$(name)_observer",PACKAGE = "$name")\$address,
+                jacobian = getNativeSymbolInfo(name = "$(name)_jacobian",PACKAGE = "$name")\$address,
+                extended_function = getNativeSymbolInfo(name = "$(name)_derivatives",PACKAGE = "$name")\$address,
+                extended_jacobian = getNativeSymbolInfo(name = "$(name)_jacobian",PACKAGE = "$name")\$address)
     }
     """)
     close(f)
