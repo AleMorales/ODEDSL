@@ -1,8 +1,17 @@
 
 # Generate OdeModel from OdeSource
 function OdeModel(model::dt.OdeSource)
+
+  # Names of the derivatives ordered by associated states
+  names_states = collect(keys(model.States))
+  names_derivatives = ASCIIString[]
+  for i in names_states
+    for (key,val) in model.Derivatives
+      val.State == i && (push!(names_derivatives, key))
+    end
+  end
+
   # We want to have easy access to the equations associated to derivatives and observed variables
-  names_derivatives = collect(keys(model.Derivatives))
   names_observed = collect(keys(model.Observed))
 
   # Create equations from observed, variable and derivatives
