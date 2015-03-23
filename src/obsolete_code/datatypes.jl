@@ -2,10 +2,9 @@ module DataTypes
 
 using DataStructures
 import Base.convert, Base.show, Base.showerror, Base.log, Base.log10,
-       Base.exp, Base.isless, Base.ifelse, Base.sqrt, Base.abs,
-       Base.==, Base.min, Base.max
+       Base.exp, Base.isless, Base.ifelse, Base.sqrt, Base.abs
 
-export Parameter, Forcing, State, Variable, Observed
+export Parameter, Forcing, Equation
 export Species, Compartment, Reactant, Component
 export MEReaction, Reaction
 export MESource, ReactionSource, OdeSource, OdeSorted, OdeModel
@@ -37,95 +36,59 @@ showerror(io::IO, e::UnitError) = print(io, "There was an error with the units")
 
 
 # Algebra with dimensions
-
-# +
-+(d::Dimension, s::Number) = d != none.d ? (throw(UnitError())) : d
-+(s::Number, d::Dimension) = d + s
-+(u1::Dimension, u2::Dimension) = u1 == u2 ? u1 : throw(UnitError())
-+(d::Dimension) = d
-
-# -
--(d::Dimension, s::Number) = d != none.d ? (throw(UnitError())) : d
--(s::Number, d::Dimension) = d - s
--(u1::Dimension, u2::Dimension) = u1 == u2 ? u1 : throw(UnitError())
--(d::Dimension) = d
-
-# *
 *(u1::Dimension, u2::Dimension) =
   Dimension(u1.K + u2.K, u1.s + u2.s, u1.m + u2.m,
             u1.g + u2.g, u1.cd + u2.cd, u1.mol + u2.mol, u1.A + u2.A)
-*(u1::Dimension, s::Number) = u1
-*(s::Number, u1::Dimension) = u1
-
-# /
 /(u1::Dimension, u2::Dimension) =
   Dimension(u1.K - u2.K, u1.s - u2.s, u1.m - u2.m,
             u1.g - u2.g, u1.cd - u2.cd, u1.mol - u2.mol, u1.A - u2.A)
-/(u1::Dimension, s::Number) = u1
-/(s::Number, u1::Dimension) = u1^(-s)
-exp(d::Dimension) = d != none.d ? (throw(UnitError())) : none.d
-
-# ^
-^(d1::Dimension, d2::Dimension) = d2 != none.d ? (throw(UnitError())) : d1
++(u1::Dimension, u2::Dimension) = u1 == u2 ? u1 : throw(UnitError())
+-(u1::Dimension, u2::Dimension) = u1 == u2 ? u1 : throw(UnitError())
 ^(u1::Dimension, s::Integer) =
   Dimension(u1.K*s, u1.s*s, u1.m*s, u1.g*s, u1.cd*s, u1.mol*s, u1.A*s)
 ^(u1::Dimension, s::Rational) =
   Dimension(u1.K*s, u1.s*s, u1.m*s, u1.g*s, u1.cd*s, u1.mol*s, u1.A*s)
 ^(u1::Dimension, s::Float64) =
   Dimension(u1.K*s, u1.s*s, u1.m*s, u1.g*s, u1.cd*s, u1.mol*s, u1.A*s)
-^(d1::Number, d2::Dimension) = d2 != none.d ? (throw(UnitError())) : none.d
-
-# exp
-exp(d::Dimension) = d != none.d ? (throw(UnitError())) : d
-
-# log
-log(d::Dimension) = d != none.d ? (throw(UnitError())) : d
-
-# log10
-log10(d::Dimension) = d != none.d ? (throw(UnitError())) : d
-
-# sqrt
+*(u1::Dimension, s::Number) = u1
+*(s::Number, u1::Dimension) = u1
+/(u1::Dimension, s::Number) = u1
+/(s::Number, u1::Dimension) = u1^(-s)
+exp(d::Dimension) = d != none.d ? (throw(UnitError())) : none.d
+log(d::Dimension) = exp(d::Dimension)
+log10(d::Dimension) = exp(d::Dimension)
 sqrt(d::Dimension) = d^(1//2)
-
++(d::Dimension, s::Number) = d != none.d ? (throw(UnitError())) : d
++(s::Number, d::Dimension) = d + s
+-(d::Dimension, s::Number) = d != none.d ? (throw(UnitError())) : d
+-(s::Number, d::Dimension) = d - s
+^(d1::Dimension, d2::Dimension) = d2 != none.d ? (throw(UnitError())) : d1
 # isless
 isless(d1::Dimension, d2::Dimension) = d1 != d2 && (throw(UnitError()))
 isless(d1::Dimension, s::Number) = d1 != none.d ? (throw(UnitError())) : d1
 isless(s::Number, d1::Dimension) = isless(d1, s)
-
 # ifelse comparison
 ifelse(d1::Dimension, d2::Dimension, s::Number) = exp(d2::Dimension)
 ifelse(d1::Dimension, s::Number, d2::Dimension) = d2 != none.d ? (throw(UnitError())) : none.d
 ifelse(d1::Dimension, d2::Dimension, d3::Dimension) = d2 != d3 ? (throw(UnitError())) : d2
 ifelse(d1::Dimension, s1::Number, s2::Number) = none.d
 
+
+
+-(d::Dimension) = d
+^(d1::Number, d2::Dimension) = d2 != none.d ? (throw(UnitError())) : none.d
 # abs
 abs(d::Dimension) = d
-
 # <
 <(d1::Dimension, d2::Dimension) = d1 != d2 ? (throw(UnitError())) : none.d
 <(d1::Dimension, n::Number) = d1 != none.d ? (throw(UnitError())) : none.d
 <(n::Number, d1::Dimension) = d1 < n
-
 # >
 >(d1::Dimension, d2::Dimension) = d1 != d2 ? (throw(UnitError())) : none.d
 >(d1::Dimension, n::Number) = d1 != none.d ? (throw(UnitError())) : none.d
 >(n::Number, d1::Dimension) = d1 < n
 
-# max function
-max(d1::Dimension, d2::Dimension) = d1 != d2 ? (throw(UnitError())) : d1
-max(d1::Dimension, n::Number) = d1 != none.d ? (throw(UnitError())) : none.d
-max(n::Number, d1::Dimension) = max(d1,n)
-
-# min function
-min(d1::Dimension, d2::Dimension) = d1 != d2 ? (throw(UnitError())) : d1
-min(d1::Dimension, n::Number) = d1 != none.d ? (throw(UnitError())) : none.d
-min(n::Number, d1::Dimension) = min(d1,n)
-
-
-
-
-
-# Basic algebra with units (for composite and derived units)
+# Algebra with units
 *(u1::Unit, u2::Unit) = Unit(u1.d * u2.d, u1.f*u2.f)
 /(u1::Unit, u2::Unit) = Unit(u1.d / u2.d, u1.f/u2.f)
 +(u1::Unit, u2::Unit) = u1.d == u2.d ? u1 : throw(UnitError())
@@ -244,146 +207,92 @@ type Parameter
     Value::Float64
     Units::Unit
 end
-==(p1::Parameter, p2::Parameter) = p1.Value == p2.Value &&
-                                   p1.Units == p2.Units
-
 type Forcing
     Time::Array{Float64, 1}
     Value::Array{Float64, 1}
     Units::Unit
 end
-==(f1::Forcing, f2::Forcing) = f1.Time == f2.Time &&
-                               f1.Value == f2.Value &&
-                               f1.Units == f2.Units
-
-type Variable
-    Expr::ASCIIString
+type Equation
+    Expr::Union(Expr, Symbol, Number)
+    Exported::Bool
     Units::Unit
 end
-==(v1::Variable, v2::Variable) = v1.Expr == v2.Expr &&
-                                 v1.Units == v2.Units
-
-type Derivative
-    Expr::ASCIIString
-    State::ASCIIString
-    Units::Unit
-end
-==(d1::Derivative, d2::Derivative) = d1.Expr == d2.Expr &&
-                                     d1.State == d2.State &&
-                                     d1.Units == d2.Units
-
-
-type Observed
-    Expr::ASCIIString
-    Units::Unit
-end
-==(o1::Observed, o2::Observed) = o1.Expr == o2.Expr &&
-                                 o1.Units == o2.Units
-
-type State
-    Value::Float64
-    Units::Unit
-    QSS::Bool
-end
-==(s1::State, s2::State) = s1.Value == s2.Value &&
-                           s1.Units == s2.Units &&
-                           s1.QSS == s2.QSS
-
-type Reactant
-    Name::ASCIIString
-    Stoichiometry::Float64
-end
-==(r1::Reactant, r2::Reactant) = r1.Name == r2.Name &&
-                                 r1.Stoichiometry == r2.Stoichiometry
-
-type Component
-    Name::ASCIIString
-    Species::ASCIIString
-    Values::Array{Float64,1}
-    Forms::Array{ASCIIString,1}
-end
-==(c1::Component, c2::Component) = c1.Species == c2.Species &&
-                                   c1.Values == c2.Values &&
-                                   c1.Forms == c2.Forms
-
-
 type Species
     Value::Float64
-    Compartment::ASCIIString
+    Compartment::String
     Units::Unit
-    Components::Vector{Component}
-    QSS::Bool
 end
-==(s1::Species, s2::Species) = s1.Value == s2.Value &&
-                               s1.Compartment == s2.Compartment &&
-                               s1.Units == s2.Units &&
-                               s1.Components == s2.Components &&
-                               s1.QSS == s2.QSS
-
+type Compartment
+    InputType::String # Parameter | State
+    Value::Float64
+    Units::Unit
+end
+type Reactant
+    Name::String
+    Stoichiometry::Float64
+end
+type Component
+    Species::String
+    Values::Array{Float64,1}
+    Forms::Array{String,1}
+end
+type MEReaction
+    Species::String
+    Component::Array{String, 1}
+    From::Array{String, 1}
+    To::Array{String, 1}
+    Expr::Union(Expr, Symbol)
+    Units::Unit
+end
 type Reaction
     Substrates::Array{Reactant, 1}
     Products::Array{Reactant, 1}
-    Expr::ASCIIString
-    Compartment::ASCIIString
-    Units::Unit
-end
-==(r1::Reaction, r2::Reaction) = r1.Substrates == r2.Substrates &&
-                                 r1.Products == r2.Products &&
-                                 r1.Expr == r2.Expr &&
-                                 r1.Compartment == r2.Compartment &&
-                                 r1.Units == r2.Units
-
-type Equation
-    Expr::Union(Symbol, Float64, Expr)
+    Expr::Union(Expr, Symbol)
+    Compartment::String
+    Exported::Bool
     Units::Unit
 end
 
 # Container for the structured description of the simulation language
-type ReactionSource
-    DynamicType::ASCIIString
-    Constants::OrderedDict{ASCIIString, Parameter}
-    Parameters::OrderedDict{ASCIIString, Parameter}
-    Forcings::OrderedDict{ASCIIString, Forcing}
-    Species::OrderedDict{ASCIIString, Species}
-    Reactions::OrderedDict{ASCIIString, Reaction}
-    States::OrderedDict{ASCIIString, State}
-    Derivatives::OrderedDict{ASCIIString, Derivative}
-    Variables::OrderedDict{ASCIIString, Variable}
-    Observed::OrderedDict{ASCIIString, Observed}
+abstract Source
+type MESource <: Source
+    Constants::Dict{String, Parameter}
+    Parameters::OrderedDict{String, Parameter}
+    Forcings::OrderedDict{String, Forcing}
+    States::OrderedDict{String, Parameter}
+    Species::Dict{String, Species}
+    Components::Dict{String, Component}
+    Compartments::Dict{String, Compartment}
+    Equations::Dict{String, Equation}
+    Reactions::Dict{String, Reaction}
+    MEReactions::Dict{String, MEReaction}
+    MEEquations::Dict{String, Equation}
 end
-type OdeSource
-    DynamicType::ASCIIString
-    Constants::OrderedDict{ASCIIString, Parameter}
-    Parameters::OrderedDict{ASCIIString, Parameter}
-    Forcings::OrderedDict{ASCIIString, Forcing}
-    States::OrderedDict{ASCIIString, State}
-    Derivatives::OrderedDict{ASCIIString, Derivative}
-    Variables::OrderedDict{ASCIIString, Variable}
-    Observed::OrderedDict{ASCIIString, Observed}
+type ReactionSource <: Source
+    Constants::Dict{String, Parameter}
+    Parameters::OrderedDict{String, Parameter}
+    Forcings::OrderedDict{String, Forcing}
+    States::OrderedDict{String, Parameter}
+    Species::Dict{String, Species}
+    Compartments::Dict{String, Compartment}
+    Equations::Dict{String, Equation}
+    Reactions::Dict{String, Reaction}
 end
-# Container where the different equations are parsed and stored in a single dict (we still conserve their meaning)
-type OdeModel
-    DynamicType::ASCIIString
-    Constants::OrderedDict{ASCIIString, Parameter}
-    Parameters::OrderedDict{ASCIIString, Parameter}
-    Forcings::OrderedDict{ASCIIString, Forcing}
-    States::OrderedDict{ASCIIString, State}
-    Equations::OrderedDict{ASCIIString, Equation}
-    NamesDerivatives::Vector{ASCIIString}
-    NamesObserved::Vector{ASCIIString}
+type OdeSource <: Source
+    Constants::Dict{String, Parameter}
+    Parameters::OrderedDict{String, Parameter}
+    Forcings::OrderedDict{String, Forcing}
+    States::OrderedDict{String, Parameter}
+    Equations::Dict{String, Equation}
 end
 # Container where all rules have been transformed into an ODE system and the equations have been sorted
 type OdeSorted
-    DynamicType::ASCIIString
-    Constants::OrderedDict{ASCIIString, Parameter}
-    Parameters::OrderedDict{ASCIIString, Parameter}
-    Forcings::OrderedDict{ASCIIString, Forcing}
-    States::OrderedDict{ASCIIString, State}
-    SortedEquations::Vector{OrderedDict{ASCIIString, Equation}}
-    NamesDerivatives::Vector{ASCIIString}
-    NamesObserved::Vector{ASCIIString}
+    Constants::Dict{String, Parameter}
+    Parameters::OrderedDict{String, Parameter}
+    Forcings::OrderedDict{String, Forcing}
+    States::OrderedDict{String, Parameter}
+    SortedEquations::Array{Dict{String, Equation}, 1}
 end
-
 
 ##################################################
 #######  Methods to print the datatypes  ########
@@ -392,9 +301,9 @@ end
 function paste(sep, s...)
     output = ""
     for i in s
-        if(isa(i,ASCIIString))
+        if(isa(i,String))
             output *= i * sep
-            elseif isa(i,Array{ASCIIString,1})
+            elseif isa(i,Array{ASCIIString,1}) || isa(i,Array{UTF8String,1}) || isa(i,Array{Any,1})
             output *= paste(sep,i) * sep
         end
     end
@@ -424,15 +333,9 @@ $(paste("\n", ["$(i[1]) = $(i[2])" for i in model.Forcings]))
 States:
 -------
 $(paste("\n", ["$(i[1]) = $(i[2])" for i in model.States]))
-Variables:
+Equations:
 ----------
-$(paste("\n\n", ["$(i[1]) = $(parse(replace(i[2].Expr,"1.0", ""))) " for i in model.Variables]))
-Observed:
-----------
-$(paste("\n\n", ["$(i[1]) = $(parse(replace(i[2].Expr,"1.0", ""))) " for i in model.Observed]))
-Derivatives:
-----------
-$(paste("\n\n", ["$(i[1]) = $(parse(replace(i[2].Expr,"1.0", ""))) " for i in model.Derivatives]))
+$(paste("\n\n", ["$(i[1]) ($(i[2].Units.d)) = $(i[2])" for i in model.Equations]))
 """)
 end
 
@@ -459,9 +362,7 @@ $(prod([paste("\n\n", ["$(i[1]) ($(i[2].Units.d)) = $(i[2])" for i in j]) for j 
 """)
 end
 show(io::IO, par::Parameter) = print(io,"$(par.Value*par.Units)")
-show(io::IO, eq::Variable) = print(io,"$(string(eq.Expr)) $(string(eq.Units))")
-show(io::IO, eq::Derivative) = print(io,"$(string(eq.Expr))")
-show(io::IO, eq::Observed) = print(io,"$(string(eq.Expr))")
+show(io::IO, eq::Equation) = print(io,"$(string(eq.Expr))")
 show(io::IO, f::Forcing) = print(io,"$(f.Value*f.Units.f) $(f.Units.d) at $(f.Time)")
 
 

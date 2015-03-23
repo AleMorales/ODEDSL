@@ -15,14 +15,14 @@ import Calculus.differentiate, Base.min, Base.max
 
 # Include the source files
 include("utils.jl")
-include("datatypes2.jl")
+include("datatypes.jl")
 import .DataTypes
 dt = DataTypes
-include("parser2.jl")
+include("parser.jl")
 include("conversion_reaction.jl")
 include("conversion_ode.jl")
 include("symbolic.jl")
-include("checks2.jl")
-include("translate_RCpp2.jl")
+include("checks.jl")
+include("translate_RCpp.jl")
 
 end
