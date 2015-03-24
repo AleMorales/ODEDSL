@@ -384,6 +384,27 @@ type OdeSorted
     NamesObserved::Vector{ASCIIString}
 end
 
+function deepcopy(model::OdeSorted)
+
+  new_eqns = OrderedDict{ASCIIString, dt.Equation}[]
+  for i in 1:length(sorted_model.SortedEquations)
+    push!(new_eqns, OrderedDict{ASCIIString, dt.Equation}())
+    for (key,val) in sorted_model.SortedEquations[i]
+      new_eqns[i][key] = dt.Equation(val.Expr, val.Units)
+    end
+  end
+
+  OdeSorted(model.DynamicType,
+            copy(model.Constants),
+            copy(model.Parameters),
+            copy(model.Forcings),
+            copy(model.States),
+            neq_eqns,
+            copy(NamesDerivatives),
+            copy(NamesObserved))
+
+end
+
 
 ##################################################
 #######  Methods to print the datatypes  ########

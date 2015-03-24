@@ -103,13 +103,13 @@ end
 
 
 # Calculation Jacobian matrix of the model
-function generate_jacobian_matrix(compressed_model::dt.OdeSorted, names_derivatives)
+function generate_jacobian_matrix(compressed_model::dt.OdeSorted)
   names_states = collect(keys(compressed_model.States))
-  Jacobian = Array(Union(Expr, Symbol, Number),(length(names_states), length(names_states)))
+  Jacobian = DArray(Union(Expr, Symbol, Number),(length(names_states), length(names_states)))
   cs = 1
     for j in names_states
       cd = 1
-      for i in names_derivatives
+      for i in compressed_model.NamesDerivatives
         @inbounds Jacobian[cd,cs] =  differentiate(compressed_model.SortedEquations[2][i].Expr, parse(j))
         cd += 1
       end
