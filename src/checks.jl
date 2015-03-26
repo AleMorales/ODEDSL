@@ -105,7 +105,7 @@ end
 # Calculation Jacobian matrix of the model
 function generate_jacobian_matrix(compressed_model::dt.OdeSorted)
   names_states = collect(keys(compressed_model.States))
-  Jacobian = DArray(Union(Expr, Symbol, Number),(length(names_states), length(names_states)))
+  Jacobian = Array(Union(Expr, Symbol, Number),(length(names_states), length(names_states)))
   cs = 1
     for j in names_states
       cd = 1
