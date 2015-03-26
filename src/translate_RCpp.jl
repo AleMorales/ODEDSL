@@ -7,13 +7,15 @@ function create_derivatives_rcpp(language, sorted_model, name)
         if level == 1
           if(ismatch(r"params|states|forcs", string(rhs.Expr)))
            number = match(r"(?<=\[)[\d]+(?=\])",string(rhs.Expr))
-           new_expr = replace(string(rhs.Expr), "[$(number.match)]", "[$(number.match)-1]")
+           new_expr = replace(string(rhs.Expr), "[$(number.match)]", "[$(int(number.match) - 1)]")
            code *= "const double $(new_expr);\n"
          else
            code *= "const double $(rhs.Expr);\n"
          end
         else
-          mod_expr = substitute_power(rhs.Expr)
+          mod_expr = copy(rhs.Expr)
+          mod_expr = sub_product(mod_expr)
+          mod_expr = substitute_power(mod_expr)
           mod_expr = sub_minmax(mod_expr)
           code *= "const double $lhs" * " = " * replace(replace(string(mod_expr), ".*", "*"), ":", "") * ";\n"
         end
@@ -101,10 +103,43 @@ function write_code_rcpp!(dynamic_type, model_function, jacobian_function, exten
 
   up_boiler_plate =
 """
+#include <RcppArmadillo.h>
 #include <array>
 #include <vector>
 #include <math.h>
 using namespace std;
+
+double ifelse(bool condition, const double& result1, const double& result2) {
+  if(condition) {
+    return result1;
+  } else {
+    return result2;
+  }
+}
+
+inline double heaviside(const double& arg) {
+  return arg <= 0.0 ? 0.0 : 1.0;
+}
+
+inline double dirac(const double& arg) {
+  return abs(arg) <= numeric_limits<double>::epsilon()  ? 0 : numeric_limits<double>::infinity();
+}
+
+inline double Min(const double& arg1) {
+  return arg1;
+}
+
+inline double Max(const double& arg1) {
+  return arg1;
+}
+
+inline double Min(const double& arg1, const double& arg2) {
+  return arg1 <= arg2 ? arg1 : arg2;
+}
+
+inline double Max(const double& arg1, const double& arg2) {
+  return arg1 >= arg2 ? arg1 : arg2;
+}
 
 extern "C" {
 """
