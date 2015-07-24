@@ -83,21 +83,6 @@ arma::mat $(name)_jacobian(const double& t, const vector<double>& states,
 
 end
 
-# Rcpp extended (RcppSundials)
-function create_extended_rcpp(language, compressed_model, names_derivatives, name)
-
-end
-
-# Rcpp extended jacobian (RcppSundials)
-function create_extended_jacobian_rcpp(language, extended_model, names_derivatives, name)
-
-end
-
-# Rcpp dae (RcppSundials)
-function create_dae_rcpp(language, sorted_model, name)
-
-end
-
 # Write the file with all the model functions
 function write_code_rcpp!(dynamic_type, model_function, jacobian_function, extended_function, extended_jacobian_function, name, file)
 
