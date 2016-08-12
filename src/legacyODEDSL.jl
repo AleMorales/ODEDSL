@@ -1,4 +1,4 @@
-module ODEDSL
+module legacyODEDSL
 
 using Base.Test
 using DataStructures
@@ -25,7 +25,6 @@ include("conversion_ode.jl")
 include("symbolic.jl")
 include("checks.jl")
 include("translate.jl")
-include("translate_julia.jl")
 include("translate_rcpp.jl")
 
 end

@@ -51,48 +51,18 @@ function generate_code!(ode_model::dt.OdeModel; language = "julia",
   # If DynamicType = DAE generate semiexplicit representation of dae model
   if (sorted_model.DynamicType == "ODE")
     model_function = create_derivatives(language, sorted_model, name)
-  elseif (sorted_model.DynamicType == "DAE")
-    model_function = create_dae(language, sorted_model, name)
+    if(language == "cpp")
+      observed_function = ""
+    else 
+      observed_function = create_observed(language, sorted_model, name)
+    end
   else
-    error("DynamicType should \"ode\" or \"dae\"")
+    error("Only DynamicType = \"ode\" is currently supported")
   end
 
-  # Compute jacobian and/or sensitivity functions
-  if (jacobian || sensitivities)
-    if(sorted_model.DynamicType == "dae") error("Jacobians or sensitivity functions for DAE models has not been implemented yet.") end
-    # If we want to obtain an analytical jacobian or the extended system with sensitivities
-    # we need to generate a version of the model without intermediate variables
-    compressed_model =
-          compress_model(deepcopy(sorted_model), level = 2)
-
-    # Generate the function to calculate the Jacobian
-    if (jacobian)
-      jacobian_function = create_jacobian(language, compressed_model, sorted_model.NamesDerivatives, name)
-    end
-
-    if (sensitivities)
-      # Generate the function to calculate the analytical sensitivity functions
-      extended_function, extended_model = create_extended(language, compressed_model, sorted_model.NamesDerivatives, name)
-
-      # Generate the function to calculate the analytical sensitivity functions
-      if (jacobian)
-        extended_jacobian_function = create_extended_jacobian(language, extended_model, sorted_model.NamesDerivatives, name)
-      else
-        extended_jacobian_function = "";
-      end
-    else
-      extended_function = "";
-      extended_jacobian_function = "";
-    end
-
-  else
-    jacobian_function = ""
-    extended_function = "";
-    extended_jacobian_function = "";
-  end
 
   # Write down the code!
-  write_code!(language, ode_model.DynamicType, model_function, jacobian_function, extended_function, extended_jacobian_function, name, file)
+  write_code!(language, ode_model.DynamicType, model_function, observed_function, name, file)
 
   nothing
 
@@ -104,25 +74,25 @@ end
 # This function writes the source for calculating the time derivatives and observed variables
 # and it dispatches the correct function depending on the language argument
 function create_derivatives(language, sorted_model, name)
-
   if (language == "julia")
-    return create_derivatives_julia(language, sorted_model, name)
-  elseif (language == "r")
-    return create_derivatives_r(language, sorted_model, name)
-  elseif (language == "c")
-    return create_derivatives_c(language, sorted_model, name)
-  elseif (language == "fortran")
-    return create_derivatives_fortran(language, sorted_model, name)
+    return create_derivatives_julia(sorted_model, name)
   elseif (language == "cpp")
     return create_derivatives_rcpp(language, sorted_model, name)
-  elseif (language == "python")
-    return create_derivatives_python(language, sorted_model, name)
-  elseif (language == "matlab")
-    return create_derivatives_matlab(language, sorted_model, name)
-  elseif (language == "java")
-    return create_derivatives_java(language, sorted_model, name)
+  else
+    error("Currently only \"julia\" and \"cpp\" are supported")
   end
+end
 
+############################ WRITE INDEPENDENT OBSERVER ################################
+
+# This function writes the source for calculating the time derivatives and observed variables
+# and it dispatches the correct function depending on the language argument
+function create_observed(language, sorted_model, name)
+  if (language == "julia")
+    return create_observed_julia(sorted_model, name)
+  else
+    error("Currently only \"julia\" and \"cpp\" are supported")
+  end
 end
 
 ############################### WRITE CODE FILES ###################################
@@ -146,24 +116,12 @@ function write_inputs!(named_states,coef_states, named_parameters, coef_paramete
 end
 
 # Write a source file with all the functions associated to the model in the target language
-function write_code!(language, dynamic_type, model_function, jacobian_function, extended_function, extended_jacobian_function, name, file)
+function write_code!(language, dynamic_type, model_function, observed_function, name, file)
 
   if (language == "julia")
-    return write_code_julia!(dynamic_type, model_function, jacobian_function, extended_function, extended_jacobian_function, name, file)
-  elseif (language == "r")
-    return write_code_r!(dynamic_type, model_function, jacobian_function, extended_function, extended_jacobian_function, name, file)
-  elseif (language == "c")
-    return write_code_c!(dynamic_type, model_function, jacobian_function, extended_function, extended_jacobian_function, name, file)
-  elseif (language == "fortran")
-    return write_code_fortran!(dynamic_type, model_function, jacobian_function, extended_function, extended_jacobian_function, name, file)
+    return write_code_julia!(dynamic_type, model_function, observed_function, name, file)
   elseif (language == "cpp")
-    return write_code_rcpp!(dynamic_type, model_function, jacobian_function, extended_function, extended_jacobian_function, name, file)
-  elseif (language == "python")
-    return write_code_python!(dynamic_type, model_function, jacobian_function, extended_function, extended_jacobian_function, name, file)
-  elseif (language == "matlab")
-    return write_code_matlab!(dynamic_type, model_function, jacobian_function, extended_function, extended_jacobian_function, name, file)
-  elseif (language == "java")
-    return write_code_java!(dynamic_type, model_function, jacobian_function, extended_function, extended_jacobian_function, name, file)
+    return write_code_rcpp!(dynamic_type, model_function, name, file)
   end
 
 end

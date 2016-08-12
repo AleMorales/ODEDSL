@@ -86,6 +86,8 @@ function species_to_states(new_model::dt.ReactionSource)
       new_states[key] = dt.State(val.Value, val.Units, val.QSS)
     # If the chemical species contains components, calculate all possible forms and generate the names
     else
+      # Total amount of the species
+      total_amount = val.Value
       # Total number of states that will be generated
       number = prod([length(i.Forms) for i in val.Components])
       # Jagged array of component-forms
@@ -128,8 +130,8 @@ function species_to_states(new_model::dt.ReactionSource)
       for i in 1:number
         forms[i] = key * "_" * prod(mat_comp_forms[i,:])
         values[i] = prod(mat_comp_values[i,:])
-        new_states[forms[i]] = dt.State(values[i], val.Units, val.QSS)
-        new_species[forms[i]] = dt.Species(values[i], val.Compartment, val.Units, {}, val.QSS)
+        new_states[forms[i]] = dt.State(values[i]*total_amount, val.Units, val.QSS)
+        new_species[forms[i]] = dt.Species(values[i]*total_amount, val.Compartment, val.Units, {}, val.QSS)
       end
       # Create a variable with the name of the species that is equal to the sum of all components
       new_variables[key] = dt.Variable(paste(" + ", forms)[1:(end-2)] , val.Units)

@@ -84,7 +84,7 @@ arma::mat $(name)_jacobian(const double& t, const vector<double>& states,
 end
 
 # Write the file with all the model functions
-function write_code_rcpp!(dynamic_type, model_function, jacobian_function, extended_function, extended_jacobian_function, name, file)
+function write_code_rcpp!(dynamic_type, model_function, name, file)
 
   up_boiler_plate =
 """
@@ -136,9 +136,6 @@ extern "C" {
   f = open("$(file).cpp","w")
   println(f, up_boiler_plate)
   println(f, model_function)
-  println(f, jacobian_function)
-  println(f, extended_function)
-  println(f, extended_jacobian_function)
   println(f, low_boiler_plate)
   close(f)
 
